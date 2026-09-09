@@ -81,6 +81,7 @@ foram analisados e conscientemente não bloqueiam o build:
 |---|---|---|
 | `S104` / `B104` — bind em `0.0.0.0` | `app.run()` dos serviços Python | Dentro de um container é o comportamento correto; e esse bloco `if __name__ == '__main__'` nem executa em produção, onde o entrypoint é o gunicorn |
 | `S608` / `B608` — SQL montado por f-string | `update_flag()` do flag-service | Os fragmentos concatenados são literais fixos no código (`"description = %s"`, `"is_enabled = %s"`); os valores do usuário vão por placeholder `%s` do psycopg2 |
+| 5 advisories CRITICAL em `golang.org/x/crypto` 0.31.0 | `auth-service` (transitivo, via pgx) | **Corrigido**, não suprimido: subimos para 0.52.0. As falhas são do servidor SSH e o serviço só usa o pacote via pgx — mas a política é não deixar CRITICAL passar, e o custo do bump era uma linha |
 | `G505` — SHA-1 | `getDeterministicBucket()` do evaluation-service | **Este foi corrigido**, não suprimido: trocado por SHA-256. O uso não era criptográfico, mas um alerta permanente é um alerta que a equipe aprende a ignorar |
 
 Os dois primeiros ficam fora do `select` do ruff (ver `ruff.toml`), e não do

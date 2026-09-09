@@ -5,6 +5,7 @@ run:
 linters:
   enable:
     - errcheck
+    - gofmt
     - govet
     - ineffassign
     - staticcheck
@@ -12,7 +13,8 @@ linters:
     - gosimple
     - bodyclose
     - gosec
-    - misspell
+    # misspell fica de fora: o dicionário é de inglês e acusa palavras
+    # em português nos comentários ("Eles" -> "Eels", "Clientes" -> "Clients")
 
 linters-settings:
   gosec:
@@ -27,6 +29,7 @@ issues:
     - path: _test\.go
       linters:
         - errcheck
+    - gofmt
         - gosec
   max-issues-per-linter: 0
   max-same-issues: 0

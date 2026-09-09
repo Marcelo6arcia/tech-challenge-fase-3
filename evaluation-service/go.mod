@@ -9,8 +9,9 @@ require (
 )
 
 // Bump explícito exigido pelo SCA da Fase 3:
-//   golang.org/x/net < 0.33.0 -> CVE-2024-45338 (DoS no parser HTML)
-require golang.org/x/net v0.33.0
+//   < 0.33.0 -> CVE-2024-45338 (DoS no parser HTML)
+//   < 0.55.0 -> GHSA-5cv4-jp36-h3mw, GHSA-vvgc-356p-c3xw, GHSA-qxp5-gwg8-xv66
+require golang.org/x/net v0.55.0
 
 require (
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect

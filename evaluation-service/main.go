@@ -62,7 +62,7 @@ func main() {
 	}
 
 	// --- Inicializa Clientes ---
-	
+
 	// Cliente Redis
 	opt, err := redis.ParseURL(redisURL)
 	if err != nil {
@@ -106,7 +106,18 @@ func main() {
 	mux.HandleFunc("/evaluate", app.evaluationHandler)
 
 	log.Printf("Serviço de Avaliação (Go) rodando na porta %s", port)
-	if err := http.ListenAndServe(":"+port, mux); err != nil {
+	// gosec G114: ListenAndServe sem timeouts deixa a porta aberta a Slowloris —
+	// conexões que enviam bytes lentamente e prendem goroutines indefinidamente.
+	srv := &http.Server{
+		Addr:              ":" + port,
+		Handler:           mux,
+		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       15 * time.Second,
+		WriteTimeout:      30 * time.Second,
+		IdleTimeout:       60 * time.Second,
+	}
+
+	if err := srv.ListenAndServe(); err != nil {
 		log.Fatal(err)
 	}
 }
