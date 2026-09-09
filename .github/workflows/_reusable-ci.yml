@@ -289,16 +289,24 @@ jobs:
       # Os dois portões ficam separados de propósito: quando um build é
       # reprovado, o nome do job já diz se o problema é uma dependência
       # vulnerável ou um segredo commitado — são incidentes bem diferentes.
-      - name: Porta de qualidade — dependências vulneráveis (CRITICAL)
+      - name: Trivy — apuração das dependências CRITICAL
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: fs
           scan-ref: ${{ inputs.service }}
           scanners: vuln
-          format: table
+          format: json
+          output: trivy-critical.json
           severity: CRITICAL
           ignore-unfixed: true
-          exit-code: "1"
+          exit-code: "0"
+
+      # A porta de qualidade em si é este passo, e não o do Trivy: assim cada
+      # CVE vira uma anotação do GitHub, visível no Pull Request e na lista de
+      # checks. Quem for corrigir vê o pacote, a versão instalada e a versão
+      # corrigida sem precisar abrir o log.
+      - name: Porta de qualidade — dependências vulneráveis (CRITICAL)
+        run: python3 .github/scripts/sca_gate.py trivy-critical.json "SCA ${{ inputs.service }}"
 
       - name: Porta de qualidade — segredos no código
         uses: aquasecurity/trivy-action@v0.36.0
