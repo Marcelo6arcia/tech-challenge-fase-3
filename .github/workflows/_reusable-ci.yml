@@ -204,7 +204,31 @@ jobs:
         run: |
           go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.62.2
           golangci-lint --version
-          golangci-lint run --timeout=5m
+
+          # A configuração é validada antes da análise: um erro de config sai
+          # com o mesmo código de um achado real, e sem isso os dois viram a
+          # mesma mensagem opaca ("exit code 3").
+          echo "--- verificando o .golangci.yml ---"
+          golangci-lint config verify || true
+          golangci-lint config path || true
+
+          set +e
+          golangci-lint run --timeout=5m > lint.out 2>&1
+          rc=$?
+          set -e
+
+          cat lint.out
+
+          if [ "$rc" -ne 0 ]; then
+            # Cada linha do relatório vira anotação, para o motivo aparecer no
+            # Pull Request sem precisar de permissão de admin no repositório.
+            head -30 lint.out | while IFS= read -r linha; do
+              if [ -n "$linha" ]; then
+                echo "::error title=golangci-lint (${{ inputs.service }})::${linha}"
+              fi
+            done
+            exit "$rc"
+          fi
 
       - name: Configurar Python
         if: inputs.language == 'python'
