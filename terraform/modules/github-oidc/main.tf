@@ -72,8 +72,8 @@ data "aws_iam_policy_document" "ecr_push" {
   }
 
   statement {
-    sid     = "ECRPushPull"
-    effect  = "Allow"
+    sid    = "ECRPushPull"
+    effect = "Allow"
     actions = [
       "ecr:BatchCheckLayerAvailability",
       "ecr:BatchGetImage",
@@ -107,8 +107,8 @@ data "aws_iam_policy_document" "terraform_plan" {
   count = var.enable_terraform_plan_access ? 1 : 0
 
   statement {
-    sid     = "TerraformStateAccess"
-    effect  = "Allow"
+    sid    = "TerraformStateAccess"
+    effect = "Allow"
     actions = [
       "s3:ListBucket",
       "s3:GetObject",

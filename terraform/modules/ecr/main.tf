@@ -37,7 +37,7 @@ resource "aws_ecr_lifecycle_policy" "this" {
       {
         rulePriority = 1
         description  = "Expira imagens sem tag apos 1 dia"
-        selection    = {
+        selection = {
           tagStatus   = "untagged"
           countType   = "sinceImagePushed"
           countUnit   = "days"
@@ -48,7 +48,7 @@ resource "aws_ecr_lifecycle_policy" "this" {
       {
         rulePriority = 2
         description  = "Mantem apenas as ${var.keep_last_images} imagens mais recentes"
-        selection    = {
+        selection = {
           tagStatus   = "any"
           countType   = "imageCountMoreThan"
           countNumber = var.keep_last_images

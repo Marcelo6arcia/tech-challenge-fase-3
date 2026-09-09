@@ -39,15 +39,15 @@ resource "helm_release" "ingress_nginx" {
   values = [yamlencode({
     controller = {
       replicaCount = 2
-      service      = {
-        type        = "LoadBalancer"
+      service = {
+        type = "LoadBalancer"
         annotations = {
           "service.beta.kubernetes.io/aws-load-balancer-type"            = "nlb"
           "service.beta.kubernetes.io/aws-load-balancer-scheme"          = "internet-facing"
           "service.beta.kubernetes.io/aws-load-balancer-nlb-target-type" = "instance"
         }
       }
-      metrics   = { enabled = true }
+      metrics = { enabled = true }
       resources = {
         requests = { cpu = "100m", memory = "128Mi" }
         limits   = { cpu = "500m", memory = "256Mi" }
@@ -72,10 +72,10 @@ resource "helm_release" "external_secrets" {
   timeout          = 600
 
   values = [yamlencode({
-    installCRDs    = true
+    installCRDs = true
     serviceAccount = {
-      create      = true
-      name        = var.external_secrets_service_account
+      create = true
+      name   = var.external_secrets_service_account
       annotations = {
         "eks.amazonaws.com/role-arn" = var.external_secrets_role_arn
       }
@@ -118,7 +118,7 @@ resource "helm_release" "argocd" {
     }
     server = {
       replicas = 1
-      ingress  = {
+      ingress = {
         enabled          = var.argocd_ingress_enabled
         ingressClassName = "nginx"
         hostname         = var.argocd_hostname
@@ -195,9 +195,9 @@ resource "helm_release" "argocd_apps" {
   values = [yamlencode({
     projects = {
       togglemaster = {
-        namespace    = var.argocd_namespace
-        description  = "ToggleMaster - Tech Challenge Fase 3"
-        sourceRepos  = [var.gitops_repo_url]
+        namespace   = var.argocd_namespace
+        description = "ToggleMaster - Tech Challenge Fase 3"
+        sourceRepos = [var.gitops_repo_url]
         destinations = [
           { namespace = var.app_namespace, server = "https://kubernetes.default.svc" },
           { namespace = var.argocd_namespace, server = "https://kubernetes.default.svc" },
@@ -215,11 +215,11 @@ resource "helm_release" "argocd_apps" {
       root = {
         namespace = var.argocd_namespace
         project   = "togglemaster"
-        source    = {
+        source = {
           repoURL        = var.gitops_repo_url
           targetRevision = var.gitops_repo_revision
           path           = var.gitops_root_path
-          directory      = {
+          directory = {
             recurse = true
           }
         }

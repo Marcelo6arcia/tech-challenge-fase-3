@@ -120,7 +120,7 @@ output "irsa_role_arns" {
 # --- Resumo para o repositório GitOps ----------------------------------------
 output "gitops_wiring" {
   description = "Valores a preencher no repositório GitOps (rode: terraform output -json gitops_wiring)"
-  value       = {
+  value = {
     aws_region             = var.aws_region
     aws_account_id         = data.aws_caller_identity.current.account_id
     ecr_registry           = module.ecr.registry_url

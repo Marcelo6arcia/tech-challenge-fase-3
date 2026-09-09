@@ -95,13 +95,13 @@ resource "aws_s3_bucket_policy" "tfstate_tls_only" {
   bucket = aws_s3_bucket.tfstate.id
 
   policy = jsonencode({
-    Version   = "2012-10-17"
+    Version = "2012-10-17"
     Statement = [{
       Sid       = "DenyInsecureTransport"
       Effect    = "Deny"
       Principal = "*"
       Action    = "s3:*"
-      Resource  = [
+      Resource = [
         aws_s3_bucket.tfstate.arn,
         "${aws_s3_bucket.tfstate.arn}/*",
       ]

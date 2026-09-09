@@ -294,7 +294,7 @@ resource "aws_secretsmanager_secret_version" "analytics_app" {
 # --- External Secrets Operator: lê os segredos acima -------------------------
 data "aws_iam_policy_document" "external_secrets" {
   statement {
-    effect  = "Allow"
+    effect = "Allow"
     actions = [
       "secretsmanager:GetSecretValue",
       "secretsmanager:DescribeSecret",
@@ -332,7 +332,7 @@ module "irsa_external_secrets" {
 # --- evaluation-service: só PUBLICA na fila ----------------------------------
 data "aws_iam_policy_document" "evaluation_service" {
   statement {
-    effect  = "Allow"
+    effect = "Allow"
     actions = [
       "sqs:SendMessage",
       "sqs:GetQueueAttributes",
@@ -358,7 +358,7 @@ module "irsa_evaluation_service" {
 # --- analytics-service: só CONSOME a fila e escreve na tabela ----------------
 data "aws_iam_policy_document" "analytics_service" {
   statement {
-    effect  = "Allow"
+    effect = "Allow"
     actions = [
       "sqs:ReceiveMessage",
       "sqs:DeleteMessage",
@@ -369,7 +369,7 @@ data "aws_iam_policy_document" "analytics_service" {
   }
 
   statement {
-    effect  = "Allow"
+    effect = "Allow"
     actions = [
       "dynamodb:PutItem",
       "dynamodb:GetItem",
