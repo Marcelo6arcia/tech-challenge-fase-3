@@ -1,0 +1,40 @@
+# =============================================================================
+# Multi-stage build — serviço Go
+# =============================================================================
+# Endurecimentos aplicados na Fase 3:
+#   - Go 1.23 (a 1.21 saiu de suporte e arrastava CVEs de stdlib para o binário)
+#   - binário estático (CGO_ENABLED=0) sobre alpine enxuta
+#   - flags -trimpath e -ldflags="-s -w": binário menor e sem caminhos locais
+#   - processo roda como usuário sem privilégio (UID 10001)
+# =============================================================================
+
+FROM golang:1.23-alpine AS builder
+
+WORKDIR /app
+
+RUN apk add --no-cache git ca-certificates
+
+# go.sum do código original veio incompleto; `go mod tidy` reconstrói as entradas
+COPY go.mod go.su[m] ./
+RUN go mod download || true
+
+COPY . .
+RUN go mod tidy \
+ && CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/app .
+
+# -----------------------------------------------------------------------------
+FROM alpine:3.21 AS runtime
+
+RUN apk add --no-cache ca-certificates \
+ && addgroup -g 10001 -S app \
+ && adduser  -u 10001 -S app -G app
+
+WORKDIR /app
+COPY --from=builder /out/app /app/app
+
+USER 10001
+
+ENV PORT=8080
+EXPOSE 8080
+
+ENTRYPOINT ["/app/app"]

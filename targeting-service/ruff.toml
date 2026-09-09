@@ -1,0 +1,12 @@
+line-length = 120
+target-version = "py312"
+
+[lint]
+select = ["E", "F", "W", "I", "UP", "B", "S"]
+ignore = [
+    "E501",  # comprimento de linha já é checado pelo flake8
+    "B008",  # padrão comum em decoradores do Flask
+]
+
+[lint.per-file-ignores]
+"tests/*" = ["S101"]  # assert é o mecanismo do pytest

@@ -1,0 +1,7 @@
+# Ver comentário em flag-service/requirements.txt sobre os CVEs corrigidos.
+Flask==3.0.3
+Werkzeug==3.0.6
+gunicorn==23.0.0
+psycopg2-binary==2.9.10
+python-dotenv==1.0.1
+requests==2.32.3

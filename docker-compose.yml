@@ -1,0 +1,147 @@
+version: "3.8"
+
+# 9 containers: 4 infra + 5 microsserviços
+# flag-service e targeting-service compartilham o postgres-flags (schemas distintos, sem conflito)
+
+services:
+
+  # ==========================================
+  # Infraestrutura
+  # ==========================================
+
+  postgres-auth:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: authdb
+      POSTGRES_USER: authuser
+      POSTGRES_PASSWORD: Togglep0st3cHMaster2026!
+    volumes:
+      - postgres_auth_data:/var/lib/postgresql/data
+      - ./auth-service/db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U authuser -d authdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  postgres-flags:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: featuredb
+      POSTGRES_USER: flaguser
+      POSTGRES_PASSWORD: Togglep0st3cHMaster2026!
+    volumes:
+      - postgres_flags_data:/var/lib/postgresql/data
+      - ./flag-service/db/init.sql:/docker-entrypoint-initdb.d/01_flags.sql:ro
+      - ./targeting-service/db/init.sql:/docker-entrypoint-initdb.d/02_targeting.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U flaguser -d featuredb"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  localstack:
+    build: ./localstack
+    environment:
+      SERVICES: sqs,dynamodb
+      DEFAULT_REGION: us-east-1
+    ports:
+      - "4566:4566"
+    volumes:
+      - localstack_data:/var/lib/localstack
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:4566/_localstack/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  # ==========================================
+  # Microsserviços
+  # ==========================================
+
+  auth-service:
+    build: ./auth-service
+    environment:
+      DATABASE_URL: postgresql://authuser:Togglep0st3cHMaster2026!@postgres-auth:5432/authdb
+      MASTER_KEY: togglemaster-local-dev-key
+    ports:
+      - "8001:8080"
+    depends_on:
+      postgres-auth:
+        condition: service_healthy
+
+  flag-service:
+    build: ./flag-service
+    environment:
+      DATABASE_URL: postgresql://flaguser:Togglep0st3cHMaster2026!@postgres-flags:5432/featuredb
+      AUTH_SERVICE_URL: http://auth-service:8080
+    ports:
+      - "8002:8080"
+    depends_on:
+      postgres-flags:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+
+  targeting-service:
+    build: ./targeting-service
+    environment:
+      DATABASE_URL: postgresql://flaguser:Togglep0st3cHMaster2026!@postgres-flags:5432/featuredb
+      AUTH_SERVICE_URL: http://auth-service:8080
+    ports:
+      - "8003:8080"
+    depends_on:
+      postgres-flags:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+
+  evaluation-service:
+    build: ./evaluation-service
+    environment:
+      REDIS_URL: redis://redis:6379
+      FLAG_SERVICE_URL: http://flag-service:8080
+      TARGETING_SERVICE_URL: http://targeting-service:8080
+      AWS_REGION: us-east-1
+      # AWS_SQS_URL omitido intencionalmente: o código loga aviso e ignora SQS localmente
+      # Chave de serviço usada para chamar flag-service/targeting-service.
+      # Gerada localmente via: curl -X POST http://localhost:8001/admin/keys -H "Authorization: Bearer $MASTER_KEY" -d '{"name":"evaluation-service-internal"}'
+      # Se o volume postgres_auth_data for recriado (docker compose down -v), gere uma nova chave e atualize aqui.
+      SERVICE_API_KEY: tm_key_4f0ace7c234502cf8440cfc5a2582b71b81b244f1538a98bd1bf8c2e9479658c
+    ports:
+      - "8004:8080"
+    depends_on:
+      redis:
+        condition: service_healthy
+      flag-service:
+        condition: service_started
+      targeting-service:
+        condition: service_started
+
+  analytics-service:
+    build: ./analytics-service
+    environment:
+      AWS_REGION: us-east-1
+      AWS_SQS_URL: http://localstack:4566/000000000000/feature-flag-events
+      AWS_DYNAMODB_TABLE: analytics-events
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_ENDPOINT_URL: http://localstack:4566
+    ports:
+      - "8005:8080"
+    depends_on:
+      localstack:
+        condition: service_healthy
+
+volumes:
+  postgres_auth_data:
+  postgres_flags_data:
+  localstack_data:
