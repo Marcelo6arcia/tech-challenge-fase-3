@@ -1,14 +1,15 @@
+import json
+import logging
 import os
 import sys
 import threading
-import json
-import uuid
 import time
-import logging
+import uuid
+
 import boto3
-from botocore.exceptions import NoCredentialsError, ClientError
-from flask import Flask, jsonify
+from botocore.exceptions import ClientError, NoCredentialsError
 from dotenv import load_dotenv
+from flask import Flask, jsonify
 
 # Configura o logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -48,10 +49,10 @@ def process_message(message):
     try:
         log.info(f"Processando mensagem ID: {message['MessageId']}")
         body = json.loads(message['Body'])
-        
+
         # Gera um ID único para o item no DynamoDB
         event_id = str(uuid.uuid4())
-        
+
         # Constrói o item no formato do DynamoDB
         item = {
             'event_id': {'S': event_id},
@@ -60,21 +61,21 @@ def process_message(message):
             'result': {'BOOL': body['result']},
             'timestamp': {'S': body['timestamp']}
         }
-        
+
         # Insere no DynamoDB
         dynamodb_client.put_item(
             TableName=DYNAMODB_TABLE_NAME,
             Item=item
         )
-        
+
         log.info(f"Evento {event_id} (Flag: {body['flag_name']}) salvo no DynamoDB.")
-        
+
         # Se tudo deu certo, deleta a mensagem da fila
         sqs_client.delete_message(
             QueueUrl=SQS_QUEUE_URL,
             ReceiptHandle=message['ReceiptHandle']
         )
-        
+
     except json.JSONDecodeError:
         log.error(f"Erro ao decodificar JSON da mensagem ID: {message['MessageId']}")
         # Não deleta a mensagem, pode ser uma "poison pill"
@@ -96,17 +97,17 @@ def sqs_worker_loop():
                 MaxNumberOfMessages=10,  # Processa em lotes de até 10
                 WaitTimeSeconds=20
             )
-            
+
             messages = response.get('Messages', [])
             if not messages:
                 # Nenhuma mensagem, continua o loop
                 continue
-                
+
             log.info(f"Recebidas {len(messages)} mensagens.")
-            
+
             for message in messages:
                 process_message(message)
-                
+
         except ClientError as e:
             log.error(f"Erro do Boto3 no loop principal do SQS: {e}")
             time.sleep(10) # Pausa antes de tentar novamente

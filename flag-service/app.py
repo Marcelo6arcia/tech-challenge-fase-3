@@ -1,20 +1,21 @@
+import logging
 import os
 import sys
+from functools import wraps
+
 import psycopg2
 import requests
+from dotenv import load_dotenv
+from flask import Flask, jsonify, request
 from psycopg2.extras import RealDictCursor
 from psycopg2.pool import SimpleConnectionPool
-from flask import Flask, request, jsonify
-from dotenv import load_dotenv
-from functools import wraps
-import logging
 
 # Configura o logging
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
 
 # Carrega .env para desenvolvimento local
-load_dotenv() 
+load_dotenv()
 
 app = Flask(__name__)
 
@@ -43,16 +44,16 @@ def require_auth(f):
         auth_header = request.headers.get("Authorization")
         if not auth_header:
             return jsonify({"error": "Authorization header obrigatório"}), 401
-        
+
         try:
             # Chama o /validate do auth-service
             validate_url = f"{AUTH_SERVICE_URL}/validate"
             response = requests.get(validate_url, headers={"Authorization": auth_header}, timeout=3)
-            
+
             if response.status_code != 200:
                 log.warning(f"Falha na validação da chave (status: {response.status_code})")
                 return jsonify({"error": "Chave de API inválida"}), 401
-        
+
         except requests.exceptions.Timeout:
             log.error("Timeout ao conectar com o auth-service")
             return jsonify({"error": "Serviço de autenticação indisponível (timeout)"}), 504 # Gateway Timeout
@@ -77,11 +78,11 @@ def create_flag():
     data = request.get_json()
     if not data or 'name' not in data:
         return jsonify({"error": "'name' é obrigatório"}), 400
-    
+
     name = data['name']
     description = data.get('description', '')
     is_enabled = data.get('is_enabled', False)
-    
+
     conn = None
     cur = None
     try:
@@ -158,7 +159,7 @@ def update_flag(name):
 
     fields = []
     values = []
-    
+
     # Constrói a query dinamicamente
     if 'description' in data:
         fields.append("description = %s")
@@ -166,24 +167,24 @@ def update_flag(name):
     if 'is_enabled' in data:
         fields.append("is_enabled = %s")
         values.append(data['is_enabled'])
-    
+
     if not fields:
         return jsonify({"error": "Pelo menos um campo ('description', 'is_enabled') é obrigatório"}), 400
-    
+
     values.append(name) # Adiciona o 'name' para a cláusula WHERE
-    
+
     query = f"UPDATE flags SET {', '.join(fields)} WHERE name = %s RETURNING *"
-    
+
     conn = None
     cur = None
     try:
         conn = pool.getconn()
         cur = conn.cursor(cursor_factory=RealDictCursor)
         cur.execute(query, tuple(values))
-        
+
         if cur.rowcount == 0:
             return jsonify({"error": "Flag não encontrada"}), 404
-            
+
         updated_flag = cur.fetchone()
         conn.commit()
         log.info(f"Flag '{name}' atualizada com sucesso.")
@@ -206,10 +207,10 @@ def delete_flag(name):
         conn = pool.getconn()
         cur = conn.cursor()
         cur.execute("DELETE FROM flags WHERE name = %s", (name,))
-        
+
         if cur.rowcount == 0:
             return jsonify({"error": "Flag não encontrada"}), 404
-            
+
         conn.commit()
         log.info(f"Flag '{name}' deletada com sucesso.")
         return "", 204 # 204 No Content
