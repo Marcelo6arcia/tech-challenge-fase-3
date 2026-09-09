@@ -33,13 +33,27 @@ terraform fmt -recursive terraform/
 ```
 
 **Gere o `go.sum` dos serviços Go antes do primeiro push.** O código herdado das
-fases anteriores veio com `go.sum` incompleto:
+fases anteriores veio sem `go.sum` no `auth-service` e com um incompleto no
+`evaluation-service`.
 
 ```bash
 cd auth-service       && go mod tidy && cd ..
 cd evaluation-service && go mod tidy && cd ..
 git add */go.sum */go.mod && git commit -m "chore: atualiza dependencias Go"
 ```
+
+Sem o Go instalado na máquina, a imagem oficial resolve — só é preciso Docker:
+
+```bash
+for svc in auth-service evaluation-service; do
+  docker run --rm -v "$PWD/$svc":/src -w /src golang:1.23-alpine go mod tidy
+done
+```
+
+Por que isso importa: com o `go.sum` versionado, o CI roda `go mod download`,
+que **verifica o checksum** de cada módulo baixado. Sem ele, o pipeline cai
+para `go mod tidy` e aceita o que o proxy de módulos servir — o job emite um
+aviso explícito quando isso acontece.
 
 ---
 

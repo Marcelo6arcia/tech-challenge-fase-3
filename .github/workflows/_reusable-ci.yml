@@ -97,9 +97,15 @@ jobs:
       - name: Compilar (Go)
         if: inputs.language == 'go'
         run: |
-          # O código-fonte herdado da Fase 1 veio com go.sum incompleto; o tidy
-          # reconstrói as entradas que faltam antes da compilação.
-          go mod tidy
+          # Com go.sum presente, `go mod download` VERIFICA o checksum de cada
+          # modulo baixado. Sem ele, o build aceita o que o proxy servir — por
+          # isso o aviso: e uma perda real de garantia de cadeia de suprimentos.
+          if [ -f go.sum ]; then
+            go mod download
+          else
+            echo "::warning title=go.sum ausente::As dependencias nao sao verificadas por checksum. Rode 'go mod tidy' e commite o go.sum."
+            go mod tidy
+          fi
           go build -v ./...
 
       - name: Testes unitários (Go)
@@ -159,7 +165,15 @@ jobs:
         if: inputs.language == 'go'
         working-directory: ${{ inputs.service }}
         run: |
-          go mod tidy
+          # Com go.sum presente, `go mod download` VERIFICA o checksum de cada
+          # modulo baixado. Sem ele, o build aceita o que o proxy servir — por
+          # isso o aviso: e uma perda real de garantia de cadeia de suprimentos.
+          if [ -f go.sum ]; then
+            go mod download
+          else
+            echo "::warning title=go.sum ausente::As dependencias nao sao verificadas por checksum. Rode 'go mod tidy' e commite o go.sum."
+            go mod tidy
+          fi
           go vet ./...
 
       - name: golangci-lint
@@ -213,7 +227,15 @@ jobs:
         if: inputs.language == 'go'
         working-directory: ${{ inputs.service }}
         run: |
-          go mod tidy
+          # Com go.sum presente, `go mod download` VERIFICA o checksum de cada
+          # modulo baixado. Sem ele, o build aceita o que o proxy servir — por
+          # isso o aviso: e uma perda real de garantia de cadeia de suprimentos.
+          if [ -f go.sum ]; then
+            go mod download
+          else
+            echo "::warning title=go.sum ausente::As dependencias nao sao verificadas por checksum. Rode 'go mod tidy' e commite o go.sum."
+            go mod tidy
+          fi
           go install github.com/securego/gosec/v2/cmd/gosec@v2.21.4
           # Relatório SARIF completo, sem quebrar o build
           gosec -no-fail -fmt sarif -out "${GITHUB_WORKSPACE}/sast.sarif" ./...
