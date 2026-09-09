@@ -105,7 +105,7 @@ func main() {
 	mux.HandleFunc("/health", app.healthHandler)
 	mux.HandleFunc("/evaluate", app.evaluationHandler)
 
-	log.Printf("Serviço de Avaliação (Go) rodando na porta %s", port)
+	log.Printf("Serviço de Avaliação (Go) rodando na porta %s", port) //nolint:gosec // #nosec G706 -- `port` vem do ConfigMap do deployment, nao de usuario
 	// gosec G114: ListenAndServe sem timeouts deixa a porta aberta a Slowloris —
 	// conexões que enviam bytes lentamente e prendem goroutines indefinidamente.
 	srv := &http.Server{
