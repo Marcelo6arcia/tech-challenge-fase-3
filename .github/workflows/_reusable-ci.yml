@@ -285,7 +285,7 @@ jobs:
             echo "::warning title=go.sum ausente ou desatualizado::As dependencias nao sao verificadas por checksum. Rode 'go mod tidy' e commite o go.sum."
             go mod tidy
           fi
-          go install github.com/securego/gosec/v2/cmd/gosec@v2.21.4
+          go install github.com/securego/gosec/v2/cmd/gosec@v2.29.0
           # Relatório SARIF completo, sem quebrar o build
           gosec -no-fail -fmt sarif -out "${GITHUB_WORKSPACE}/sast.sarif" ./...
           # Porta de qualidade: achados de alta severidade derrubam o pipeline

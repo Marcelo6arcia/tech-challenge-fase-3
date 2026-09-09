@@ -8,7 +8,9 @@ import (
 	"io"
 	"log"
 	"net/http"
+	neturl "net/url"
 	"os"
+	"strings"
 	"sync"
 	"time"
 )
@@ -17,6 +19,27 @@ const (
 	// Tempo de vida do cache em segundos
 	CACHE_TTL = 30 * time.Second
 )
+
+// sanitizarParaLog remove quebras de linha e caracteres de controle de valores
+// que vieram do cliente antes de irem para o log (gosec G706).
+//
+// Sem isso, um flag_name contendo "\n" permite forjar linhas inteiras de log:
+// quem depois lê esse log — ou o SIEM que o indexa — passa a ver eventos que
+// nunca aconteceram.
+func sanitizarParaLog(valor string) string {
+	limpo := strings.Map(func(r rune) rune {
+		if r == '\n' || r == '\r' || r < 32 || r == 127 {
+			return -1
+		}
+		return r
+	}, valor)
+
+	const maximo = 120
+	if len(limpo) > maximo {
+		return limpo[:maximo] + "..."
+	}
+	return limpo
+}
 
 // getDecision é o wrapper principal
 func (a *App) getDecision(userID, flagName string) (bool, error) {
@@ -40,14 +63,14 @@ func (a *App) getCombinedFlagInfo(flagName string) (*CombinedFlagInfo, error) {
 		// Cache HIT
 		var info CombinedFlagInfo
 		if err := json.Unmarshal([]byte(val), &info); err == nil {
-			log.Printf("Cache HIT para flag '%s'", flagName)
+			log.Printf("Cache HIT para flag '%s'", sanitizarParaLog(flagName))
 			return &info, nil
 		}
 		// Se o unmarshal falhar, trata como cache miss
-		log.Printf("Erro ao desserializar cache para flag '%s': %v", flagName, err)
+		log.Printf("Erro ao desserializar cache para flag '%s': %v", sanitizarParaLog(flagName), err)
 	}
 
-	log.Printf("Cache MISS para flag '%s'", flagName)
+	log.Printf("Cache MISS para flag '%s'", sanitizarParaLog(flagName))
 	// 2. Cache MISS - Buscar dos serviços
 	info, err := a.fetchFromServices(flagName)
 	if err != nil {
@@ -60,7 +83,7 @@ func (a *App) getCombinedFlagInfo(flagName string) (*CombinedFlagInfo, error) {
 		// Falha ao gravar no cache não invalida a resposta: o próximo pedido
 		// simplesmente volta a consultar os serviços de origem.
 		if err := a.RedisClient.Set(ctx, cacheKey, jsonData, CACHE_TTL).Err(); err != nil {
-			log.Printf("Aviso: falha ao gravar a flag '%s' no cache: %v", flagName, err)
+			log.Printf("Aviso: falha ao gravar a flag '%s' no cache: %v", sanitizarParaLog(flagName), err)
 		}
 	}
 
@@ -94,7 +117,7 @@ func (a *App) fetchFromServices(flagName string) (*CombinedFlagInfo, error) {
 		return nil, flagErr
 	}
 	if ruleErr != nil {
-		log.Printf("Aviso: Nenhuma regra de segmentação encontrada para '%s'. Usando padrão.", flagName)
+		log.Printf("Aviso: Nenhuma regra de segmentação encontrada para '%s'. Usando padrão.", sanitizarParaLog(flagName))
 	}
 
 	return &CombinedFlagInfo{
@@ -105,7 +128,9 @@ func (a *App) fetchFromServices(flagName string) (*CombinedFlagInfo, error) {
 
 // fetchFlag (função helper)
 func (a *App) fetchFlag(flagName string) (*Flag, error) {
-	url := fmt.Sprintf("%s/flags/%s", a.FlagServiceURL, flagName)
+	// gosec G704: flagName vem da query string. Sem escapar, um valor
+	// como "../admin" sairia do caminho pretendido dentro do flag-service.
+	url := fmt.Sprintf("%s/flags/%s", a.FlagServiceURL, neturl.PathEscape(flagName))
 
 	apiKey := os.Getenv("SERVICE_API_KEY")
 	req, _ := http.NewRequest("GET", url, nil)
@@ -115,7 +140,7 @@ func (a *App) fetchFlag(flagName string) (*Flag, error) {
 	if err != nil {
 		return nil, fmt.Errorf("erro ao chamar flag-service: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode == http.StatusNotFound {
 		return nil, &NotFoundError{flagName}
@@ -133,7 +158,8 @@ func (a *App) fetchFlag(flagName string) (*Flag, error) {
 }
 
 func (a *App) fetchRule(flagName string) (*TargetingRule, error) {
-	url := fmt.Sprintf("%s/rules/%s", a.TargetingServiceURL, flagName)
+	// gosec G704: mesmo tratamento do fetchFlag.
+	url := fmt.Sprintf("%s/rules/%s", a.TargetingServiceURL, neturl.PathEscape(flagName))
 	apiKey := os.Getenv("SERVICE_API_KEY") // Usa a mesma chave
 	req, _ := http.NewRequest("GET", url, nil)
 	req.Header.Set("Authorization", "Bearer "+apiKey)
@@ -142,7 +168,7 @@ func (a *App) fetchRule(flagName string) (*TargetingRule, error) {
 	if err != nil {
 		return nil, fmt.Errorf("erro ao chamar targeting-service: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode == http.StatusNotFound {
 		return nil, &NotFoundError{flagName} // Não é um erro fatal
@@ -175,7 +201,7 @@ func (a *App) runEvaluationLogic(info *CombinedFlagInfo, userID string) bool {
 		// Converte o 'value' (que é interface{}) para float64
 		percentage, ok := rule.Value.(float64)
 		if !ok {
-			log.Printf("Erro: valor da regra de porcentagem não é um número para a flag '%s'", info.Flag.Name)
+			log.Printf("Erro: valor da regra de porcentagem não é um número para a flag '%s'", sanitizarParaLog(info.Flag.Name))
 			return false
 		}
 

@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 )
 
@@ -153,5 +154,46 @@ func TestRunEvaluationLogicMesmoUsuarioMesmaDecisao(t *testing.T) {
 		if got := app.runEvaluationLogic(info, "usuario-estavel"); got != primeiro {
 			t.Fatal("a decisão variou para o mesmo usuário e a mesma flag")
 		}
+	}
+}
+
+func TestSanitizarParaLogRemoveQuebrasDeLinha(t *testing.T) {
+	// Um flag_name com "\n" permitiria forjar uma linha de log inteira.
+	entrada := "nova-home\nINFO: usuario admin autenticado com sucesso"
+
+	got := sanitizarParaLog(entrada)
+
+	if strings.ContainsAny(got, "\n\r") {
+		t.Errorf("saída ainda contém quebra de linha: %q", got)
+	}
+	if want := "nova-homeINFO: usuario admin autenticado com sucesso"; got != want {
+		t.Errorf("sanitizarParaLog(%q) = %q, esperado %q", entrada, got, want)
+	}
+}
+
+func TestSanitizarParaLogRemoveCaracteresDeControle(t *testing.T) {
+	got := sanitizarParaLog("flag\x00nula\x07sino\x1bescape")
+
+	if want := "flagnulasinoescape"; got != want {
+		t.Errorf("got %q, esperado %q", got, want)
+	}
+}
+
+func TestSanitizarParaLogTruncaValorLongo(t *testing.T) {
+	got := sanitizarParaLog(strings.Repeat("a", 500))
+
+	if want := 120 + len("..."); len(got) != want {
+		t.Errorf("tamanho = %d, esperado %d", len(got), want)
+	}
+	if !strings.HasSuffix(got, "...") {
+		t.Error("valor truncado deveria terminar em reticências")
+	}
+}
+
+func TestSanitizarParaLogPreservaTextoNormal(t *testing.T) {
+	const entrada = "checkout-novo_v2"
+
+	if got := sanitizarParaLog(entrada); got != entrada {
+		t.Errorf("sanitizarParaLog(%q) = %q — não deveria alterar", entrada, got)
 	}
 }

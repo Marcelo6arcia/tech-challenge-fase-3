@@ -42,7 +42,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Não foi possível conectar ao banco de dados: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	app := &App{
 		DB:        db,
@@ -60,7 +60,9 @@ func main() {
 	// Eles são protegidos pelo middleware de autenticação
 	mux.Handle("/admin/keys", app.masterKeyAuthMiddleware(http.HandlerFunc(app.createKeyHandler)))
 
-	log.Printf("Serviço de Autenticação (Go) rodando na porta %s", port)
+	// gosec G706: `port` vem de variável de ambiente definida pelo ConfigMap
+	// do deployment, não de entrada de usuário.
+	log.Printf("Serviço de Autenticação (Go) rodando na porta %s", port) //nolint:gosec
 	// gosec G114: ListenAndServe sem timeouts deixa a porta aberta a Slowloris —
 	// conexões que enviam bytes lentamente e prendem goroutines indefinidamente.
 	srv := &http.Server{
