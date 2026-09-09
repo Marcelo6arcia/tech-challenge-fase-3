@@ -89,7 +89,10 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: ${{ inputs.go_version }}
-          cache-dependency-path: ${{ inputs.service }}/go.sum
+          # go.mod (e não go.sum) como chave de cache: o go.sum do código herdado
+          # das fases anteriores está ausente/incompleto, e o setup-go falha
+          # quando o caminho de cache não existe.
+          cache-dependency-path: ${{ inputs.service }}/go.mod
 
       - name: Compilar (Go)
         if: inputs.language == 'go'
@@ -147,7 +150,10 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: ${{ inputs.go_version }}
-          cache-dependency-path: ${{ inputs.service }}/go.sum
+          # go.mod (e não go.sum) como chave de cache: o go.sum do código herdado
+          # das fases anteriores está ausente/incompleto, e o setup-go falha
+          # quando o caminho de cache não existe.
+          cache-dependency-path: ${{ inputs.service }}/go.mod
 
       - name: go vet
         if: inputs.language == 'go'
@@ -198,7 +204,10 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: ${{ inputs.go_version }}
-          cache-dependency-path: ${{ inputs.service }}/go.sum
+          # go.mod (e não go.sum) como chave de cache: o go.sum do código herdado
+          # das fases anteriores está ausente/incompleto, e o setup-go falha
+          # quando o caminho de cache não existe.
+          cache-dependency-path: ${{ inputs.service }}/go.mod
 
       - name: gosec (Go)
         if: inputs.language == 'go'
