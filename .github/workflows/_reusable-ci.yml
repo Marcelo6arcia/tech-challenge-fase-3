@@ -97,13 +97,14 @@ jobs:
       - name: Compilar (Go)
         if: inputs.language == 'go'
         run: |
-          # Com go.sum presente, `go mod download` VERIFICA o checksum de cada
-          # modulo baixado. Sem ele, o build aceita o que o proxy servir — por
-          # isso o aviso: e uma perda real de garantia de cadeia de suprimentos.
-          if [ -f go.sum ]; then
-            go mod download
+          # Com go.sum presente e coerente com o go.mod, `go mod download`
+          # VERIFICA o checksum de cada modulo baixado. Sem isso o build aceita
+          # o que o proxy servir — perda real de garantia de cadeia de
+          # suprimentos, por isso o aviso e explicito.
+          if [ -f go.sum ] && go mod download 2>/dev/null; then
+            echo "Dependencias verificadas pelos checksums do go.sum."
           else
-            echo "::warning title=go.sum ausente::As dependencias nao sao verificadas por checksum. Rode 'go mod tidy' e commite o go.sum."
+            echo "::warning title=go.sum ausente ou desatualizado::As dependencias nao sao verificadas por checksum. Rode 'go mod tidy' e commite o go.sum."
             go mod tidy
           fi
           go build -v ./...
@@ -165,24 +166,45 @@ jobs:
         if: inputs.language == 'go'
         working-directory: ${{ inputs.service }}
         run: |
-          # Com go.sum presente, `go mod download` VERIFICA o checksum de cada
-          # modulo baixado. Sem ele, o build aceita o que o proxy servir — por
-          # isso o aviso: e uma perda real de garantia de cadeia de suprimentos.
-          if [ -f go.sum ]; then
-            go mod download
+          # Com go.sum presente e coerente com o go.mod, `go mod download`
+          # VERIFICA o checksum de cada modulo baixado. Sem isso o build aceita
+          # o que o proxy servir — perda real de garantia de cadeia de
+          # suprimentos, por isso o aviso e explicito.
+          if [ -f go.sum ] && go mod download 2>/dev/null; then
+            echo "Dependencias verificadas pelos checksums do go.sum."
           else
-            echo "::warning title=go.sum ausente::As dependencias nao sao verificadas por checksum. Rode 'go mod tidy' e commite o go.sum."
+            echo "::warning title=go.sum ausente ou desatualizado::As dependencias nao sao verificadas por checksum. Rode 'go mod tidy' e commite o go.sum."
             go mod tidy
           fi
           go vet ./...
 
+      # gofmt como passo proprio, e nao como linter do golangci: assim a saida
+      # lista exatamente quais arquivos estao fora do formato, sem depender de
+      # como cada versao do golangci trata a regra.
+      - name: gofmt
+        if: inputs.language == 'go'
+        working-directory: ${{ inputs.service }}
+        run: |
+          fora=$(gofmt -l .)
+          if [ -n "$fora" ]; then
+            echo "Arquivos fora do formato do gofmt:"
+            echo "$fora"
+            for f in $fora; do
+              echo "::error file=${{ inputs.service }}/$f,title=gofmt::Arquivo fora do formato. Rode 'gofmt -w $f'."
+            done
+            exit 1
+          fi
+          echo "Todos os arquivos estao formatados."
+
+      # Instalado por `go install` em vez da action: a versao fica pinada de
+      # forma inequivoca e aparece no log antes de qualquer analise.
       - name: golangci-lint
         if: inputs.language == 'go'
-        uses: golangci/golangci-lint-action@v6
-        with:
-          version: v1.62.2
-          working-directory: ${{ inputs.service }}
-          args: --timeout=5m
+        working-directory: ${{ inputs.service }}
+        run: |
+          go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.62.2
+          golangci-lint --version
+          golangci-lint run --timeout=5m
 
       - name: Configurar Python
         if: inputs.language == 'python'
@@ -227,13 +249,14 @@ jobs:
         if: inputs.language == 'go'
         working-directory: ${{ inputs.service }}
         run: |
-          # Com go.sum presente, `go mod download` VERIFICA o checksum de cada
-          # modulo baixado. Sem ele, o build aceita o que o proxy servir — por
-          # isso o aviso: e uma perda real de garantia de cadeia de suprimentos.
-          if [ -f go.sum ]; then
-            go mod download
+          # Com go.sum presente e coerente com o go.mod, `go mod download`
+          # VERIFICA o checksum de cada modulo baixado. Sem isso o build aceita
+          # o que o proxy servir — perda real de garantia de cadeia de
+          # suprimentos, por isso o aviso e explicito.
+          if [ -f go.sum ] && go mod download 2>/dev/null; then
+            echo "Dependencias verificadas pelos checksums do go.sum."
           else
-            echo "::warning title=go.sum ausente::As dependencias nao sao verificadas por checksum. Rode 'go mod tidy' e commite o go.sum."
+            echo "::warning title=go.sum ausente ou desatualizado::As dependencias nao sao verificadas por checksum. Rode 'go mod tidy' e commite o go.sum."
             go mod tidy
           fi
           go install github.com/securego/gosec/v2/cmd/gosec@v2.21.4

@@ -9,13 +9,14 @@ require (
 
 // Bumps explícitos exigidos pelo SCA da Fase 3.
 //
-// golang.org/x/crypto: o Trivy reprovou o build com 5 advisories CRITICAL
-// (GHSA-x527-x647-q7gg, GHSA-5cgq-3rg8-m6cv, GHSA-rm3j-f69w-wqmq,
-// GHSA-89gr-r52h-f8rx, GHSA-vgwf-h737-ff37), todas corrigidas na 0.52.0.
-// Nenhuma delas nos afeta na prática — são falhas do servidor SSH, e este
-// serviço só usa o pacote via pgx — mas a política é não deixar CRITICAL passar.
+// golang.org/x/crypto: o SCA reprovou o build duas vezes seguidas.
+// Primeiro por 5 advisories CRITICAL corrigidas na 0.52.0; depois pela
+// CVE-2026-56854 (bypass de autenticação por restrição de origem não aplicada
+// no servidor SSH), corrigida na 0.55.0.
+// Nenhuma delas nos afeta na prática — este serviço só usa o pacote via pgx,
+// e nunca sobe um servidor SSH — mas a política é não deixar CRITICAL passar.
 require (
-	golang.org/x/crypto v0.52.0
+	golang.org/x/crypto v0.55.0
 	golang.org/x/text v0.21.0
 )
 
