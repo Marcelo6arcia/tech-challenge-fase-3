@@ -286,15 +286,27 @@ jobs:
           sarif_file: trivy-fs.sarif
           category: sca-${{ inputs.service }}
 
-      - name: Trivy — porta de qualidade (bloqueia em CRITICAL)
+      # Os dois portões ficam separados de propósito: quando um build é
+      # reprovado, o nome do job já diz se o problema é uma dependência
+      # vulnerável ou um segredo commitado — são incidentes bem diferentes.
+      - name: Porta de qualidade — dependências vulneráveis (CRITICAL)
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: fs
           scan-ref: ${{ inputs.service }}
-          scanners: vuln,secret
+          scanners: vuln
           format: table
           severity: CRITICAL
           ignore-unfixed: true
+          exit-code: "1"
+
+      - name: Porta de qualidade — segredos no código
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: ${{ inputs.service }}
+          scanners: secret
+          format: table
           exit-code: "1"
 
   # ===========================================================================
