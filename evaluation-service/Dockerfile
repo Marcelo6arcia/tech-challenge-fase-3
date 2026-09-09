@@ -2,13 +2,13 @@
 # Multi-stage build — serviço Go
 # =============================================================================
 # Endurecimentos aplicados na Fase 3:
-#   - Go 1.23 (a 1.21 saiu de suporte e arrastava CVEs de stdlib para o binário)
+#   - Go 1.25 (exigido por golang.org/x/crypto 0.55.0 e x/net 0.55.0)
 #   - binário estático (CGO_ENABLED=0) sobre alpine enxuta
 #   - flags -trimpath e -ldflags="-s -w": binário menor e sem caminhos locais
 #   - processo roda como usuário sem privilégio (UID 10001)
 # =============================================================================
 
-FROM golang:1.23-alpine AS builder
+FROM golang:1.25-alpine AS builder
 
 WORKDIR /app
 

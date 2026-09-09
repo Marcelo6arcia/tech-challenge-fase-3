@@ -32,7 +32,9 @@ on:
       go_version:
         required: false
         type: string
-        default: "1.23"
+        # 1.25 porque golang.org/x/crypto 0.55.0 e x/net 0.55.0 declaram
+        # `go 1.25.0` — abaixo disso o módulo nem carrega.
+        default: "1.25"
       python_version:
         required: false
         type: string
@@ -202,7 +204,7 @@ jobs:
         if: inputs.language == 'go'
         working-directory: ${{ inputs.service }}
         run: |
-          go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.62.2
+          go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.13.2
           golangci-lint --version
 
           # A configuração é validada antes da análise: um erro de config sai

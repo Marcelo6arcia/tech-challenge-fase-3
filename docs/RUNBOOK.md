@@ -46,7 +46,7 @@ Sem o Go instalado na máquina, a imagem oficial resolve — só é preciso Dock
 
 ```bash
 for svc in auth-service evaluation-service; do
-  docker run --rm -v "$PWD/$svc":/src -w /src golang:1.23-alpine go mod tidy
+  docker run --rm -v "$PWD/$svc":/src -w /src golang:1.25-alpine go mod tidy
 done
 ```
 
