@@ -40,6 +40,13 @@ env:
   # Sem isso, a validação do módulo eks reprova o plan com mensagem explícita,
   # em vez de o EKS aplicar 0.0.0.0/0 sem avisar.
   TF_VAR_public_access_cidrs: ${{ vars.PUBLIC_ACCESS_CIDRS }}
+  # O mesmo bucket que o -backend-config usa, agora tambem como variavel.
+  # terraform.tfvars e gitignored, entao no CI state_bucket_name chegava vazio,
+  # enable_terraform_plan_access virava false e o plano propunha DESTRUIR a
+  # politica que da ao proprio CI permissao de rodar plan. O apply teria
+  # quebrado o pipeline de forma permanente, e o erro seguinte (AccessDenied no
+  # plan) nao apontaria para a causa.
+  TF_VAR_state_bucket_name: ${{ secrets.TF_STATE_BUCKET }}
 
 concurrency:
   group: terraform-dev
