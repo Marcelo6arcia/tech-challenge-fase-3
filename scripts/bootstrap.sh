@@ -72,11 +72,16 @@ echo "Configurando o kubectl para o cluster ${CLUSTER}..."
 # --alias fixa um nome inconfundivel para o contexto. Sem isso o kubectl usa o
 # ARN do cluster, que numa maquina com varios EKS na mesma regiao e facil de
 # confundir — e os passos seguintes rodam kubectl delete e kubectl patch.
+# --profile usa $PERFIL, e nao $AWS_PROFILE: o backend.hcl acima ja foi escrito
+# com o default "fiap", e usar variaveis diferentes nos dois lugares fazia o
+# state apontar para um profile e o contexto do kubectl para outro. Quem rodasse
+# sem exportar AWS_PROFILE ganhava um contexto amarrado ao profile padrao da
+# maquina, e o kubectl get nodes da linha seguinte falhava por credencial.
 aws eks update-kubeconfig \
   --region "${REGIAO}" \
   --name "${CLUSTER}" \
   --alias "togglemaster-dev" \
-  ${AWS_PROFILE:+--profile "$AWS_PROFILE"}
+  --profile "${PERFIL}"
 
 echo "  contexto ativo: $(kubectl config current-context)"
 kubectl get nodes

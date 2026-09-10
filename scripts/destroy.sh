@@ -18,7 +18,7 @@ TF="${RAIZ}/terraform"
 CONTEXTO=$(kubectl config current-context 2>/dev/null || echo "nenhum")
 if [ "$CONTEXTO" != "togglemaster-dev" ]; then
   echo "ERRO: o contexto do kubectl e '${CONTEXTO}', nao 'togglemaster-dev'."
-  echo "Rode:  aws eks update-kubeconfig --region us-east-1 \\"
+  echo "Rode:  aws eks update-kubeconfig --region us-east-1 --profile fiap \\"
   echo "         --name togglemaster-dev-eks --alias togglemaster-dev"
   exit 1
 fi

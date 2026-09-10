@@ -94,13 +94,27 @@ e 6 segredos no Secrets Manager.
 O EKS leva de 12 a 18 minutos. As instâncias RDS sobem em paralelo.
 
 ```bash
-aws eks update-kubeconfig --region us-east-1 \
+aws eks update-kubeconfig --region us-east-1 --profile fiap \
   --name "$(terraform output -raw eks_cluster_name)" \
   --alias togglemaster-dev
 
 kubectl config current-context   # precisa dizer: togglemaster-dev
 kubectl get nodes
 ```
+
+> **O `--profile fiap` nao e opcional.** Ele nao afeta so este comando: o
+> `update-kubeconfig` grava o profile DENTRO do contexto, como
+> `env: AWS_PROFILE`, e e esse valor que o `kubectl` usa depois para pedir o
+> token. Sem a flag, o contexto nasce amarrado ao profile padrao da maquina.
+>
+> O sintoma e confuso: `aws sts get-caller-identity --profile fiap` responde
+> certo, o `update-kubeconfig` falha com "Token has expired and refresh failed"
+> referindo-se a OUTRO profile, e um `kubectl get nodes` pode ate funcionar --
+> usando um contexto antigo que ja estava correto. Da a impressao de que esta
+> tudo bem quando o contexto novo nasceu quebrado.
+>
+> Confira com:
+> `kubectl config view --minify --context=togglemaster-dev -o json | jq '.users[0].user.exec.env'`
 
 > O `--alias` não é cosmético. Sem ele o contexto fica com o ARN do cluster, e
 > numa máquina com vários EKS na mesma região é fácil rodar um `kubectl delete`
