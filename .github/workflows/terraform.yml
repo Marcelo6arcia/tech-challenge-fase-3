@@ -31,7 +31,15 @@ permissions:
   security-events: write
 
 env:
-  TF_VERSION: "1.13.3"
+  # Precisa acompanhar a versao que escreveu o state. O Terraform LE um state
+  # gravado por versao mais nova, mas se recusa a GRAVA-LO: com o CI em 1.13.3
+  # e o state em 1.15.5, o plan passava e o apply falharia -- e a mensagem so
+  # aparece depois da aprovacao manual, no pior momento possivel.
+  #
+  # Se alguem rodar apply local com uma versao mais nova, o state sobe junto e
+  # esta linha precisa subir tambem. O caminho sem essa armadilha e nao aplicar
+  # da maquina de ninguem, que e a tese da fase.
+  TF_VERSION: "1.15.5"
   AWS_REGION: "us-east-1"
   WORKDIR: "terraform/envs/dev/infra"
   # CIDRs que alcançam o endpoint público da API do EKS. Vem de uma variável de
