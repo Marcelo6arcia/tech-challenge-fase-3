@@ -10,8 +10,44 @@
 
 data "aws_caller_identity" "current" {}
 
+# =============================================================================
+# VERSÃO DO KUBERNETES — descoberta, não chutada
+# =============================================================================
+# Fixar "1.31" no código funciona no dia em que se escreve e envelhece sozinho.
+# O problema não é estético: quando uma versão sai do suporte padrão do EKS, o
+# control plane passa de US$ 0,10 para US$ 0,60 por hora — de ~US$ 73 para
+# ~US$ 438 por mês, sem nenhum aviso no `apply`.
+#
+# Por isso a versão vem do próprio EKS. Sem `kubernetes_version` definido, usa-se
+# a versão padrão da AWS, que está sempre em suporte padrão e é a mais bem
+# coberta pelos add-ons.
+data "aws_eks_cluster_versions" "padrao" {
+  cluster_type = "eks"
+  default_only = true
+}
+
+# Lista completa, usada só para validar a escolha (inclusive quando alguém fixa
+# uma versão à mão no terraform.tfvars).
+data "aws_eks_cluster_versions" "todas" {
+  cluster_type = "eks"
+  include_all  = true
+}
+
 locals {
   name_prefix = "${var.project_name}-${var.environment}"
+
+  # Versão do EKS: a fixada no tfvars, ou a padrão da AWS quando não houver
+  versao_padrao_eks  = data.aws_eks_cluster_versions.padrao.cluster_versions[0].cluster_version
+  kubernetes_version = coalesce(var.kubernetes_version, local.versao_padrao_eks)
+
+  status_por_versao = {
+    for v in data.aws_eks_cluster_versions.todas.cluster_versions :
+    v.cluster_version => v.version_status
+  }
+  fim_suporte_padrao = {
+    for v in data.aws_eks_cluster_versions.todas.cluster_versions :
+    v.cluster_version => v.end_of_standard_support_date
+  }
 
   services = [
     "auth-service",
@@ -29,6 +65,31 @@ locals {
     Phase       = "3"
     ManagedBy   = "Terraform"
     Repository  = "${var.github_owner}/${var.github_app_repo}"
+  }
+}
+
+# -----------------------------------------------------------------------------
+# Guarda de custo: recusa versão fora do suporte padrão
+# -----------------------------------------------------------------------------
+# O `apply` falha aqui, em segundos, em vez de subir um cluster que custa seis
+# vezes mais no control plane e só aparece na fatura no mês seguinte.
+resource "terraform_data" "guarda_versao_eks" {
+  input = local.kubernetes_version
+
+  lifecycle {
+    precondition {
+      condition     = lookup(local.status_por_versao, local.kubernetes_version, "UNSUPPORTED") == "STANDARD_SUPPORT"
+      error_message = <<-EOT
+        A versão ${local.kubernetes_version} do Kubernetes está em
+        "${lookup(local.status_por_versao, local.kubernetes_version, "UNSUPPORTED")}" no EKS.
+
+        Fora do suporte padrão o control plane custa US$ 0,60/hora em vez de
+        US$ 0,10/hora — cerca de US$ 438/mês contra US$ 73/mês.
+
+        A versão padrão da AWS hoje é ${local.versao_padrao_eks}. Remova
+        `kubernetes_version` do terraform.tfvars para usá-la automaticamente.
+      EOT
+    }
   }
 }
 
@@ -54,7 +115,7 @@ module "eks" {
   source = "../../../modules/eks"
 
   cluster_name       = "${local.name_prefix}-eks"
-  kubernetes_version = var.kubernetes_version
+  kubernetes_version = local.kubernetes_version
 
   subnet_ids = concat(module.network.public_subnet_ids, module.network.private_subnet_ids)
   # Sem NAT Gateway, os nós precisam de rota direta para a internet (pull de
@@ -69,6 +130,8 @@ module "eks" {
   cluster_admin_principal_arns = var.cluster_admin_principal_arns
 
   tags = local.common_tags
+
+  depends_on = [terraform_data.guarda_versao_eks]
 }
 
 # -----------------------------------------------------------------------------

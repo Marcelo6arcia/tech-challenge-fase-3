@@ -4,9 +4,9 @@ variable "cluster_name" {
 }
 
 variable "kubernetes_version" {
-  description = "Versão do Kubernetes do control plane"
+  description = "Versão do Kubernetes do control plane. null deixa o EKS usar a versão padrão dele."
   type        = string
-  default     = "1.31"
+  default     = null
 }
 
 variable "subnet_ids" {

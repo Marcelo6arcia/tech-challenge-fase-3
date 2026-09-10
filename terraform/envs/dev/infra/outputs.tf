@@ -42,6 +42,16 @@ output "eks_cluster_endpoint" {
   description = "Endpoint da API do cluster"
 }
 
+output "eks_kubernetes_version" {
+  value = {
+    versao                = local.kubernetes_version
+    status                = lookup(local.status_por_versao, local.kubernetes_version, "desconhecido")
+    fim_do_suporte_padrao = lookup(local.fim_suporte_padrao, local.kubernetes_version, "desconhecido")
+    versao_padrao_da_aws  = local.versao_padrao_eks
+  }
+  description = "Versão do Kubernetes em uso e até quando ela fica no suporte padrão"
+}
+
 output "eks_oidc_provider_arn" {
   value       = module.eks.oidc_provider_arn
   description = "OIDC provider do cluster"

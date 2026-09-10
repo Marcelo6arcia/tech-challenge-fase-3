@@ -14,7 +14,7 @@ Região **us-east-1**, preços on-demand, mês de 730 horas.
 
 | Recurso | Configuração | Qtd. | Estimativa/mês |
 |---|---|---:|---:|
-| EKS — control plane | US$ 0,10/hora | 1 | US$ 73,00 |
+| EKS — control plane | US$ 0,10/hora, versão em suporte padrão | 1 | US$ 73,00 |
 | EC2 — worker nodes | `t3a.medium`, on-demand | 3 | US$ 82,35 |
 | EBS gp3 — nós | 30 GB por nó | 90 GB | US$ 7,20 |
 | RDS PostgreSQL | `db.t3.micro`, single-AZ | 3 | US$ 39,42 |
@@ -32,6 +32,13 @@ Região **us-east-1**, preços on-demand, mês de 730 horas.
 
 NAT Gateway: **US$ 0,00** — desligado por padrão (`enable_nat_gateway = false`).
 Ligá-lo acrescenta cerca de **US$ 65/mês** (2 AZs) mais o tráfego processado.
+
+**Versão do Kubernetes:** um cluster rodando versão fora do suporte padrão do
+EKS custa **US$ 0,60/hora** no control plane em vez de US$ 0,10 — US$ 438/mês
+contra US$ 73/mês, sozinho maior que todo o resto do ambiente somado. Por isso a
+versão não é fixada no código: o `terraform/envs/dev/infra` descobre a versão
+padrão da AWS em tempo de plan, e um `terraform_data` com precondition reprova o
+apply se alguém fixar uma versão em extended support.
 
 ---
 

@@ -37,9 +37,14 @@ variable "enable_nat_gateway" {
 
 # --- EKS ---------------------------------------------------------------------
 variable "kubernetes_version" {
-  description = "Versão do Kubernetes"
+  description = <<-EOT
+    Versão do Kubernetes. Deixe null (padrão) para usar a versão padrão do EKS,
+    descoberta em tempo de plan — ela está sempre em suporte padrão.
+    Fixar uma versão fora do suporte padrão faz o apply falhar de propósito:
+    o control plane passa a custar seis vezes mais.
+  EOT
   type        = string
-  default     = "1.31"
+  default     = null
 }
 
 variable "node_instance_types" {
