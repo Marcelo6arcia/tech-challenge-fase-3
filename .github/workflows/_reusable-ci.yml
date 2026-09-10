@@ -502,10 +502,16 @@ jobs:
           path: sbom-${{ inputs.service }}.cdx.json
           retention-days: 30
 
-      # O push só acontece na main: em Pull Request o pipeline valida tudo,
-      # mas não publica artefato nem promove nada para o cluster.
+      # O push só acontece na main: em Pull Request o pipeline valida tudo, mas
+      # não publica artefato nem promove nada para o cluster.
+      #
+      # A condição exclui pull_request em vez de exigir event_name == 'push',
+      # porque a segunda forma tambem barrava workflow_dispatch na main — e é
+      # por workflow_dispatch que o RUNBOOK e o HANDOFF mandam disparar o
+      # primeiro build de cada serviço. O job terminava em success sem publicar
+      # nada, que é o pior desfecho possível: verde e sem efeito.
       - name: Push da imagem para o ECR
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         uses: docker/build-push-action@v6
         with:
           context: ./${{ inputs.service }}
@@ -523,7 +529,7 @@ jobs:
             echo "|---|---|"
             echo "| Tag | \`${{ steps.meta.outputs.tag }}\` |"
             echo "| Imagem | \`${{ steps.uri.outputs.uri }}\` |"
-            echo "| Push no ECR | ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }} |"
+            echo "| Push no ECR | ${{ github.ref == 'refs/heads/main' && github.event_name != 'pull_request' }} |"
           } >> "$GITHUB_STEP_SUMMARY"
 
   # ===========================================================================
@@ -535,7 +541,7 @@ jobs:
     name: Atualizar repositório GitOps
     runs-on: ubuntu-latest
     needs: image
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     # Serializa os commits dos 5 pipelines no mesmo repositório GitOps
     concurrency:
       group: gitops-${{ inputs.gitops_repo }}-${{ inputs.gitops_overlay }}
