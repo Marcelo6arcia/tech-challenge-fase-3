@@ -103,6 +103,18 @@ variable "github_app_repo" {
   default     = "tech-challenge-fase-3"
 }
 
+variable "github_owner_id" {
+  description = "ID numerico do owner no GitHub, usado no subject do OIDC."
+  type        = string
+  default     = "71568242"
+}
+
+variable "github_repo_id" {
+  description = "ID numerico do repositorio no GitHub, usado no subject do OIDC."
+  type        = string
+  default     = "1363085368"
+}
+
 variable "public_access_cidrs" {
   description = "CIDRs autorizados a alcancar o endpoint publico da API do EKS."
   type        = list(string)

@@ -66,6 +66,12 @@ locals {
     ManagedBy   = "Terraform"
     Repository  = "${var.github_owner}/${var.github_app_repo}"
   }
+
+  # Formato antigo e formato novo do subject do OIDC do GitHub.
+  github_repo_refs = [
+    "${var.github_owner}/${var.github_app_repo}",
+    "${var.github_owner}@${var.github_owner_id}/${var.github_app_repo}@${var.github_repo_id}",
+  ]
 }
 
 # -----------------------------------------------------------------------------
@@ -260,16 +266,26 @@ module "github_oidc" {
 
   role_name = "${local.name_prefix}-github-actions"
 
-  allowed_subjects = [
-    "repo:${var.github_owner}/${var.github_app_repo}:ref:refs/heads/main",
-    "repo:${var.github_owner}/${var.github_app_repo}:pull_request",
-    "repo:${var.github_owner}/${var.github_app_repo}:environment:*",
-  ]
+  # O GitHub passou a emitir o subject com os IDs numericos imutaveis de owner e
+  # repositorio: repo:owner@71568242/repo@1363085368:ref:refs/heads/main. A trust
+  # policy so conhecia o formato antigo, e todo job que falava com a AWS morria
+  # em "Not authorized to perform sts:AssumeRoleWithWebIdentity". Os dois
+  # formatos ficam autorizados, cada um por extenso.
+  #
+  # De proposito sem curinga no nome: "repo:${var.github_owner}*" casaria com
+  # um owner de prefixo igual e nome maior, que poderia assumir estas roles.
+  allowed_subjects = flatten([
+    for referencia in local.github_repo_refs : [
+      "repo:${referencia}:ref:refs/heads/main",
+      "repo:${referencia}:pull_request",
+      "repo:${referencia}:environment:*",
+    ]
+  ])
 
   # Somente o subject de environment: a role privilegiada só é assumível depois
   # da aprovação configurada no GitHub Environment `aws-dev`.
   apply_role_subjects = [
-    "repo:${var.github_owner}/${var.github_app_repo}:environment:aws-dev",
+    for referencia in local.github_repo_refs : "repo:${referencia}:environment:aws-dev"
   ]
 
   ecr_repository_arns          = module.ecr.repository_arns
