@@ -13,6 +13,18 @@ set -euo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TF="${RAIZ}/terraform"
 
+# Guarda de contexto: este script roda `kubectl delete` e `kubectl patch`.
+# Numa maquina com varios clusters, apontar para o errado e desastre.
+CONTEXTO=$(kubectl config current-context 2>/dev/null || echo "nenhum")
+if [ "$CONTEXTO" != "togglemaster-dev" ]; then
+  echo "ERRO: o contexto do kubectl e '${CONTEXTO}', nao 'togglemaster-dev'."
+  echo "Rode:  aws eks update-kubeconfig --region us-east-1 \\"
+  echo "         --name togglemaster-dev-eks --alias togglemaster-dev"
+  exit 1
+fi
+
+echo "Contexto do kubectl: ${CONTEXTO}"
+echo
 echo "Isto vai destruir o ambiente dev do ToggleMaster:"
 echo "  - cluster EKS e tudo que roda nele"
 echo "  - 3 instâncias RDS (dados perdidos)"

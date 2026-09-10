@@ -95,9 +95,17 @@ O EKS leva de 12 a 18 minutos. As instâncias RDS sobem em paralelo.
 
 ```bash
 aws eks update-kubeconfig --region us-east-1 \
-  --name "$(terraform output -raw eks_cluster_name)"
+  --name "$(terraform output -raw eks_cluster_name)" \
+  --alias togglemaster-dev
+
+kubectl config current-context   # precisa dizer: togglemaster-dev
 kubectl get nodes
 ```
+
+> O `--alias` não é cosmético. Sem ele o contexto fica com o ARN do cluster, e
+> numa máquina com vários EKS na mesma região é fácil rodar um `kubectl delete`
+> no cluster errado. O `scripts/destroy.sh` recusa rodar se o contexto ativo não
+> for `togglemaster-dev`.
 
 ---
 

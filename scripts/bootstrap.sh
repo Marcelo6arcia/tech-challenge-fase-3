@@ -69,7 +69,16 @@ terraform -chdir="${TF}/envs/dev/infra" apply -input=false -auto-approve
 CLUSTER=$(terraform -chdir="${TF}/envs/dev/infra" output -raw eks_cluster_name)
 echo
 echo "Configurando o kubectl para o cluster ${CLUSTER}..."
-aws eks update-kubeconfig --region "${REGIAO}" --name "${CLUSTER}" ${AWS_PROFILE:+--profile "$AWS_PROFILE"}
+# --alias fixa um nome inconfundivel para o contexto. Sem isso o kubectl usa o
+# ARN do cluster, que numa maquina com varios EKS na mesma regiao e facil de
+# confundir — e os passos seguintes rodam kubectl delete e kubectl patch.
+aws eks update-kubeconfig \
+  --region "${REGIAO}" \
+  --name "${CLUSTER}" \
+  --alias "togglemaster-dev" \
+  ${AWS_PROFILE:+--profile "$AWS_PROFILE"}
+
+echo "  contexto ativo: $(kubectl config current-context)"
 kubectl get nodes
 
 # ── 4. Plataforma ────────────────────────────────────────────────────────────
