@@ -23,7 +23,7 @@ func (a *App) sendEvaluationEvent(userID, flagName string, result bool) {
 	if a.SqsSvc == nil || a.SqsQueueURL == "" {
 		// Numa unica linha de proposito: o golangci-lint so aceita o //nolint na
 		// linha em que o achado e reportado, que aqui e a do log.Printf.
-		log.Printf("[SQS_DISABLED] Evento: User '%s', Flag '%s', Result '%t'", sanitizarParaLog(userID), sanitizarParaLog(flagName), result) //nolint:gosec // #nosec G706 -- valores ja passaram por sanitizarParaLog
+		log.Printf("[SQS_DISABLED] Evento: User '%s', Flag '%s', Result '%t'", sanitizarParaLog(userID), sanitizarParaLog(flagName), result) //nolint:gosec // G706: valores ja passaram por sanitizarParaLog
 		return
 	}
 
@@ -49,6 +49,6 @@ func (a *App) sendEvaluationEvent(userID, flagName string, result bool) {
 	if err != nil {
 		log.Printf("Erro ao enviar mensagem para SQS: %v", err)
 	} else {
-		log.Printf("Evento de avaliação enviado para SQS (Flag: %s)", sanitizarParaLog(flagName)) //nolint:gosec // #nosec G706 -- valor ja passou por sanitizarParaLog
+		log.Printf("Evento de avaliação enviado para SQS (Flag: %s)", sanitizarParaLog(flagName)) //nolint:gosec // G706: valor ja passou por sanitizarParaLog
 	}
 }

@@ -23,12 +23,18 @@ const (
 // NOTA SOBRE AS SUPRESSOES DE gosec NESTE ARQUIVO
 //
 // A analise de taint do gosec (G704/G706) rastreia o dado da entrada ate o
-// destino, mas nao possui lista de sanitizadores reconhecidos: ela continua
+// destino, mas nao mantem lista de sanitizadores reconhecidos: ela continua
 // acusando mesmo depois de neturl.PathEscape e de sanitizarParaLog.
 //
-// Por isso as supressoes sao por LINHA, e nao por regra: um `http.NewRequest`
-// ou um `log.Printf` novo, sem sanitizacao, continua sendo reprovado pelo
-// pipeline. Cada supressao fica ao lado da chamada que ja foi tratada.
+// As supressoes sao por LINHA, e nao por regra desligada: uma chamada nova,
+// sem sanitizacao, continua sendo reprovada. Cada uma fica ao lado da chamada
+// que ja foi tratada.
+//
+// O //nolint vale para o job Linter (golangci-lint). O job SAST roda o gosec
+// standalone, que NAO aplica supressao a achados vindos de analise de taint —
+// o proprio relatorio dele acusa "Nosec: 0" mesmo com a anotacao presente.
+// Por isso G704 e G706 sao excluidos da porta de qualidade daquele job, e so
+// dela: continuam no SARIF e continuam reprovando pelo Linter.
 
 // sanitizarParaLog remove quebras de linha e caracteres de controle de valores
 // que vieram do cliente antes de irem para o log (gosec G706).
@@ -73,14 +79,14 @@ func (a *App) getCombinedFlagInfo(flagName string) (*CombinedFlagInfo, error) {
 		// Cache HIT
 		var info CombinedFlagInfo
 		if err := json.Unmarshal([]byte(val), &info); err == nil {
-			log.Printf("Cache HIT para flag '%s'", sanitizarParaLog(flagName)) //nolint:gosec // #nosec G706 -- valor ja passou por sanitizarParaLog
+			log.Printf("Cache HIT para flag '%s'", sanitizarParaLog(flagName)) //nolint:gosec // G706: valor ja passou por sanitizarParaLog
 			return &info, nil
 		}
 		// Se o unmarshal falhar, trata como cache miss
-		log.Printf("Erro ao desserializar cache para flag '%s': %v", sanitizarParaLog(flagName), err) //nolint:gosec // #nosec G706 -- valor ja passou por sanitizarParaLog
+		log.Printf("Erro ao desserializar cache para flag '%s': %v", sanitizarParaLog(flagName), err) //nolint:gosec // G706: valor ja passou por sanitizarParaLog
 	}
 
-	log.Printf("Cache MISS para flag '%s'", sanitizarParaLog(flagName)) //nolint:gosec // #nosec G706 -- valor ja passou por sanitizarParaLog
+	log.Printf("Cache MISS para flag '%s'", sanitizarParaLog(flagName)) //nolint:gosec // G706: valor ja passou por sanitizarParaLog
 	// 2. Cache MISS - Buscar dos serviços
 	info, err := a.fetchFromServices(flagName)
 	if err != nil {
@@ -93,7 +99,7 @@ func (a *App) getCombinedFlagInfo(flagName string) (*CombinedFlagInfo, error) {
 		// Falha ao gravar no cache não invalida a resposta: o próximo pedido
 		// simplesmente volta a consultar os serviços de origem.
 		if err := a.RedisClient.Set(ctx, cacheKey, jsonData, CACHE_TTL).Err(); err != nil {
-			log.Printf("Aviso: falha ao gravar a flag '%s' no cache: %v", sanitizarParaLog(flagName), err) //nolint:gosec // #nosec G706 -- valor ja passou por sanitizarParaLog
+			log.Printf("Aviso: falha ao gravar a flag '%s' no cache: %v", sanitizarParaLog(flagName), err) //nolint:gosec // G706: valor ja passou por sanitizarParaLog
 		}
 	}
 
@@ -127,7 +133,7 @@ func (a *App) fetchFromServices(flagName string) (*CombinedFlagInfo, error) {
 		return nil, flagErr
 	}
 	if ruleErr != nil {
-		log.Printf("Aviso: Nenhuma regra de segmentação encontrada para '%s'. Usando padrão.", sanitizarParaLog(flagName)) //nolint:gosec // #nosec G706 -- valor ja passou por sanitizarParaLog
+		log.Printf("Aviso: Nenhuma regra de segmentação encontrada para '%s'. Usando padrão.", sanitizarParaLog(flagName)) //nolint:gosec // G706: valor ja passou por sanitizarParaLog
 	}
 
 	return &CombinedFlagInfo{
@@ -143,10 +149,10 @@ func (a *App) fetchFlag(flagName string) (*Flag, error) {
 	url := fmt.Sprintf("%s/flags/%s", a.FlagServiceURL, neturl.PathEscape(flagName))
 
 	apiKey := os.Getenv("SERVICE_API_KEY")
-	req, _ := http.NewRequest("GET", url, nil) //nolint:gosec // #nosec G704 -- caminho escapado com neturl.PathEscape
+	req, _ := http.NewRequest("GET", url, nil) //nolint:gosec // G704: caminho escapado com neturl.PathEscape
 	req.Header.Set("Authorization", "Bearer "+apiKey)
 
-	resp, err := a.HttpClient.Do(req) //nolint:gosec // #nosec G704 -- caminho escapado com neturl.PathEscape
+	resp, err := a.HttpClient.Do(req) //nolint:gosec // G704: caminho escapado com neturl.PathEscape
 	if err != nil {
 		return nil, fmt.Errorf("erro ao chamar flag-service: %w", err)
 	}
@@ -171,10 +177,10 @@ func (a *App) fetchRule(flagName string) (*TargetingRule, error) {
 	// gosec G704: mesmo tratamento do fetchFlag.
 	url := fmt.Sprintf("%s/rules/%s", a.TargetingServiceURL, neturl.PathEscape(flagName))
 	apiKey := os.Getenv("SERVICE_API_KEY")     // Usa a mesma chave
-	req, _ := http.NewRequest("GET", url, nil) //nolint:gosec // #nosec G704 -- caminho escapado com neturl.PathEscape
+	req, _ := http.NewRequest("GET", url, nil) //nolint:gosec // G704: caminho escapado com neturl.PathEscape
 	req.Header.Set("Authorization", "Bearer "+apiKey)
 
-	resp, err := a.HttpClient.Do(req) //nolint:gosec // #nosec G704 -- caminho escapado com neturl.PathEscape
+	resp, err := a.HttpClient.Do(req) //nolint:gosec // G704: caminho escapado com neturl.PathEscape
 	if err != nil {
 		return nil, fmt.Errorf("erro ao chamar targeting-service: %w", err)
 	}
@@ -211,7 +217,7 @@ func (a *App) runEvaluationLogic(info *CombinedFlagInfo, userID string) bool {
 		// Converte o 'value' (que é interface{}) para float64
 		percentage, ok := rule.Value.(float64)
 		if !ok {
-			log.Printf("Erro: valor da regra de porcentagem não é um número para a flag '%s'", sanitizarParaLog(info.Flag.Name)) //nolint:gosec // #nosec G706 -- valor ja passou por sanitizarParaLog
+			log.Printf("Erro: valor da regra de porcentagem não é um número para a flag '%s'", sanitizarParaLog(info.Flag.Name)) //nolint:gosec // G706: valor ja passou por sanitizarParaLog
 			return false
 		}
 

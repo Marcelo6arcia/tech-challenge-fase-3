@@ -38,7 +38,7 @@ func (a *App) evaluationHandler(w http.ResponseWriter, r *http.Request) {
 			result = false
 		} else {
 			// Outros erros (serviços offline, etc)
-			log.Printf("Erro ao avaliar flag '%s': %v", sanitizarParaLog(flagName), err) //nolint:gosec // #nosec G706 -- valor ja passou por sanitizarParaLog
+			log.Printf("Erro ao avaliar flag '%s': %v", sanitizarParaLog(flagName), err) //nolint:gosec // G706: valor ja passou por sanitizarParaLog
 			http.Error(w, `{"error": "Erro interno ao avaliar a flag"}`, http.StatusBadGateway)
 			return
 		}

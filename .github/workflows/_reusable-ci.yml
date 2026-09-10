@@ -287,11 +287,16 @@ jobs:
           fi
           go install github.com/securego/gosec/v2/cmd/gosec@v2.29.0
 
-          # Duas saídas do mesmo escaneamento: SARIF para a aba Security e JSON
-          # para a porta de qualidade. Nenhuma das duas quebra o build aqui — a
-          # decisão fica no passo seguinte, que sabe explicar o motivo.
+          # SARIF completo, com TODAS as regras, para a aba Security.
           gosec -no-fail -fmt sarif -out "${GITHUB_WORKSPACE}/sast.sarif" ./...
-          gosec -no-fail -fmt json  -out "${GITHUB_WORKSPACE}/gosec-report.json" ./...
+
+          # JSON que decide o build. G704 e G706 ficam de fora AQUI — e só aqui.
+          # Elas são regras de análise de taint, e o gosec standalone não aplica
+          # supressão a esse tipo de achado: mesmo com a anotação na linha, o
+          # relatório acusa "Nosec: 0". Não é perda de cobertura: as duas seguem
+          # ativas no job Linter, via golangci-lint, onde a supressão por linha
+          # funciona — uma chamada nova sem sanitização continua reprovando.
+          gosec -no-fail -exclude=G704,G706 -fmt json -out "${GITHUB_WORKSPACE}/gosec-report.json" ./...
 
           # Saída legível no log, para quem estiver acompanhando o run
           gosec -no-fail -fmt text ./...
