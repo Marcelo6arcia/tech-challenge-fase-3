@@ -175,9 +175,29 @@ Actions*:
 | Secret | Valor |
 |---|---|
 | `AWS_ROLE_ARN` | `terraform -chdir=terraform/envs/dev/infra output -raw github_actions_role_arn` |
-| `AWS_ROLE_ARN_APPLY` | o mesmo ARN (ou uma role separada com permissão de apply) |
+| `AWS_ROLE_ARN_APPLY` | `terraform -chdir=terraform/envs/dev/infra output -raw github_actions_apply_role_arn` |
 | `TF_STATE_BUCKET` | `terraform -chdir=terraform/bootstrap output -raw state_bucket_name` |
 | `GITOPS_TOKEN` | PAT fine-grained com **Contents: Read and write** em `togglemaster-gitops` |
+
+Nao aponte `AWS_ROLE_ARN_APPLY` para a mesma role do `AWS_ROLE_ARN`. Sao duas
+roles distintas de proposito: a de plan e somente leitura e roda em qualquer
+push ou PR; a de apply so e assumivel pelo subject `environment:aws-dev`, ou
+seja, depois da aprovacao manual. Igualar as duas anula o portao.
+
+Na mesma tela, aba **Variables** (nao Secrets), crie:
+
+| Variável | Valor |
+|---|---|
+| `PUBLIC_ACCESS_CIDRS` | `["SEU.IP.PUBLICO/32"]` — descubra com `curl -s https://checkip.amazonaws.com` |
+
+Ela alimenta `TF_VAR_public_access_cidrs` e define quem alcanca o endpoint da
+API do EKS. **Sem ela o `terraform plan` do CI reprova**, de proposito: o
+modulo `eks` tem uma `validation` que barra lista vazia, porque lista vazia faz
+o EKS aplicar `0.0.0.0/0` sem avisar. Nao vai para o `.tfvars` porque o arquivo
+e gitignored e o valor e um IP residencial num repositorio publico.
+
+Inclua o IP de **todo mundo que precisa de `kubectl`** — quem ficar de fora
+perde acesso ao cluster assim que o apply rodar.
 
 Em *Settings → Environments*, crie o environment **`aws-dev`** e marque
 *Required reviewers* — é o que segura o `terraform apply` do pipeline.
@@ -186,15 +206,23 @@ Em *Settings → Environments*, crie o environment **`aws-dev`** e marque
 
 ## Passo 6 — Primeiro deploy pelo pipeline
 
+Alterações em `<servico>/**` disparam só o pipeline daquele serviço. Um commit
+vazio **nao dispara nada**: os workflows filtram por `paths`, e sem arquivo
+alterado nenhum filtro casa.
+
+Para publicar os cinco, use *Actions → CI &lt;servico&gt; → Run workflow* em cada
+um, ou pela linha de comando:
+
 ```bash
 cd ~/Documents/fiap/tech-challenge-fase-3
-git commit --allow-empty -m "ci: primeiro build dos 5 microsservicos"
-git push origin main
+for s in auth flag targeting evaluation analytics; do
+  gh workflow run "ci-$s-service.yml" --ref main
+done
 ```
 
-Alterações em `<servico>/**` disparam só o pipeline daquele serviço. Para
-publicar os cinco de uma vez, use *Actions → CI &lt;servico&gt; → Run workflow*
-em cada um (o gatilho `workflow_dispatch` está habilitado).
+O `workflow_dispatch` na `main` publica no ECR e commita no repositorio GitOps,
+igual a um push. Ate 2026-09-10 nao publicava — a condicao exigia
+`event_name == 'push'` e o job terminava verde sem efeito.
 
 Acompanhe:
 

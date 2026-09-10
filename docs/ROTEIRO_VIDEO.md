@@ -38,7 +38,8 @@ Mostre o diagrama do `README.md` e anuncie os quatro blocos.
 **Estrutura (1 min)**
 
 ```bash
-tree terraform -L 3
+# `tree` nao vem no macOS. Instale antes (brew install tree) ou use:
+find terraform -maxdepth 3 -not -path '*/.terraform/*' | sort
 ```
 
 Aponte: `bootstrap/` (o state), `modules/` (10 módulos reutilizáveis) e
@@ -67,9 +68,15 @@ cd terraform/envs/dev/infra
 terraform plan
 ```
 
-Como está tudo aplicado, aparece `No changes`. É exatamente o que queremos
-mostrar: **o código descreve o ambiente real**. Se preferir mostrar movimento,
-altere `node_desired_size` de 3 para 4 e rode o plan — 1 recurso a modificar.
+Com tudo aplicado, aparece `No changes`. É exatamente o que queremos mostrar:
+**o código descreve o ambiente real**. Se preferir mostrar movimento, altere
+`node_desired_size` de 3 para 4 e rode o plan — 1 recurso a modificar.
+
+> **Confira antes de gravar.** `No changes` só aparece se nao houver apply
+> pendente. Rode `terraform -chdir=terraform/envs/dev/infra plan` e confirme.
+> Se sobrar mudanca, ou aprove o `Terraform Apply` que estiver parado no
+> environment `aws-dev`, ou troque a fala — um plan com pendencia contradiz a
+> frase "o codigo descreve o ambiente real" na frente do avaliador.
 
 **Resultado na AWS (1,5 min)**
 
@@ -179,13 +186,20 @@ Mostre também o `ApplicationSet`: uma Application por pasta em
 
 **A UI (1 min)**
 
-Mostre as 7 Applications e abra a árvore de recursos de uma delas: Deployment,
-Service, ConfigMap, ServiceAccount, HPA, PDB.
+Mostre as 7 Applications e abra a árvore de recursos do **evaluation-service**:
+Deployment, Service, ConfigMap, ServiceAccount, HPA, PDB.
+
+> Abra esta e nao outra: `evaluation-service` e o unico servico que tem HPA
+> **e** PDB ao mesmo tempo. HPA existe so nele e no analytics-service; o
+> analytics nao tem PDB, porque roda com uma replica so.
 
 **A sincronização ao vivo (1,5 min)**
 
-Com a UI aberta, dentro de 30 segundos do commit a Application vai para
-`OutOfSync`. Abra o **App Diff** — a única diferença é a tag da imagem. Em
+Com a UI aberta, a Application vai para `OutOfSync` — mas **isso leva ate 3
+minutos**, nao 30 segundos: `timeout.reconciliation` no `argocd-cm` esta em
+`180s` e nao ha webhook configurado. Tres minutos de silencio no ar sao
+mortais, entao **clique em Refresh na UI** para forcar a checagem na hora, ou
+encha o tempo explicando o ApplicationSet enquanto espera. Abra o **App Diff** — a única diferença é a tag da imagem. Em
 seguida ela sincroniza sozinha e volta a `Synced`/`Healthy`, com o rolling
 update dos pods visível na árvore.
 
@@ -226,6 +240,6 @@ Encerre com o custo estimado (`docs/CUSTOS.md`) e os links do repositório.
 | Se falhar | Faça |
 |---|---|
 | Pipeline demora demais | Mostre um run anterior já concluído (grave-o antes) |
-| Argo CD não sincroniza na hora | Clique em **Refresh**; o intervalo está em 30 s, mas a UI aceita sync manual |
+| Argo CD não sincroniza na hora | Clique em **Refresh**: o polling e de 180 s (`timeout.reconciliation`), entao esperar e ruim no ar |
 | NLB fora do ar | Use `kubectl port-forward` direto no Service do serviço |
 | Internet instável | Tenha gravado à parte um clipe de cada bloco crítico |
