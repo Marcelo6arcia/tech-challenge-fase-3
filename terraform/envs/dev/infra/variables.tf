@@ -103,6 +103,17 @@ variable "github_app_repo" {
   default     = "tech-challenge-fase-3"
 }
 
+variable "public_access_cidrs" {
+  description = "CIDRs autorizados a alcancar o endpoint publico da API do EKS."
+  type        = list(string)
+
+  # Fica fora do git de proposito: o valor real e o IP residencial de quem
+  # opera, muda sozinho e este repositorio e publico. Localmente vem do
+  # terraform.tfvars; no CI, de TF_VAR_public_access_cidrs, alimentado pela
+  # variavel de repositorio PUBLIC_ACCESS_CIDRS.
+  default = []
+}
+
 variable "state_bucket_name" {
   description = "Bucket de state (concede acesso ao papel OIDC para rodar plan no CI)"
   type        = string

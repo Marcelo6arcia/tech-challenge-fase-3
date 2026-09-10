@@ -30,3 +30,8 @@ github_app_repo = "tech-challenge-fase-3"
 
 # Bucket criado por terraform/bootstrap (libera terraform plan no CI)
 state_bucket_name = "togglemaster-tfstate-xxxxxxxx"
+
+# CIDRs que podem alcancar o endpoint publico da API do EKS. Obrigatorio: uma
+# lista vazia faz o EKS aplicar 0.0.0.0/0 silenciosamente, e a validacao do
+# modulo barra isso. Descubra o seu com: curl -s https://checkip.amazonaws.com
+public_access_cidrs = ["203.0.113.10/32"]

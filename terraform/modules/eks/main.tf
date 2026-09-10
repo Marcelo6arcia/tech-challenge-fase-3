@@ -94,11 +94,31 @@ resource "aws_eks_cluster" "this" {
     bootstrap_cluster_creator_admin_permissions = true
   }
 
+  # O trivy ancora o AVD-AWS-0041 neste bloco. Ele resolve public_access_cidrs
+  # estaticamente e, sem um literal no codigo, assume o default da AWS —
+  # 0.0.0.0/0. O valor real nao pode ser versionado: e o IP de quem opera, ele
+  # muda, e este repositorio e publico. Ele chega por TF_VAR_public_access_cidrs.
+  #
+  # O cenario que o trivy supoe nao pode ocorrer: a validation em variables.tf
+  # reprova o plan quando a lista vem vazia, entao nao existe caminho em que
+  # este modulo aplique 0.0.0.0/0 por omissao. Confira ali.
+  # trivy:ignore:AVD-AWS-0041
   vpc_config {
     subnet_ids              = var.subnet_ids
     endpoint_private_access = true
-    endpoint_public_access  = true
-    public_access_cidrs     = var.public_access_cidrs
+
+    # Risco aceito e registrado em docs/ARQUITETURA.md. Fechar o endpoint
+    # publico exige alcancar a API por dentro da VPC, e a VPC deste ambiente
+    # roda sem NAT Gateway por decisao de custo (~US$ 65/mes em duas AZs, um
+    # quarto do total). Sem NAT, operar o cluster exigiria bastion ou VPN, que
+    # custam mais do que o proprio ambiente que estao protegendo. A postura de
+    # producao e enable_nat_gateway = true com endpoint_public_access = false.
+    # A exposicao fica limitada por public_access_cidrs e pelo endpoint privado
+    # seguir habilitado.
+    # trivy:ignore:AVD-AWS-0040
+    endpoint_public_access = true
+
+    public_access_cidrs = var.public_access_cidrs
   }
 
   enabled_cluster_log_types = var.enabled_cluster_log_types

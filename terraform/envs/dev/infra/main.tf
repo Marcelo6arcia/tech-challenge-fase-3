@@ -128,6 +128,7 @@ module "eks" {
   node_max_size       = var.node_max_size
 
   cluster_admin_principal_arns = var.cluster_admin_principal_arns
+  public_access_cidrs          = var.public_access_cidrs
 
   tags = local.common_tags
 

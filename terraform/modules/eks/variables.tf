@@ -20,9 +20,20 @@ variable "node_subnet_ids" {
 }
 
 variable "public_access_cidrs" {
-  description = "CIDRs autorizados a acessar o endpoint público da API. Restrinja ao IP da sua rede em produção."
+  description = "CIDRs autorizados a acessar o endpoint público da API do cluster."
   type        = list(string)
-  default     = ["0.0.0.0/0"]
+
+  # Sem default aberto de proposito. O default ["0.0.0.0/0"] anterior deixava o
+  # endpoint da API exposto a internet inteira em qualquer uso do modulo, e o
+  # trivy config apontava isso como AVD-AWS-0041 (CRITICAL), travando o pipeline
+  # de IaC. Quem chama o modulo passa a ser obrigado a declarar de onde o
+  # cluster pode ser alcancado.
+  default = []
+
+  validation {
+    condition     = length(var.public_access_cidrs) > 0
+    error_message = "Informe ao menos um CIDR em public_access_cidrs. Uma lista vazia faz o EKS aplicar 0.0.0.0/0 silenciosamente."
+  }
 }
 
 variable "enabled_cluster_log_types" {
