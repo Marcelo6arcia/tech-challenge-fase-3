@@ -141,6 +141,7 @@ data "aws_iam_policy_document" "terraform_plan" {
       "dynamodb:List*",
       "ec2:Describe*",
       "ecr:Describe*",
+      "ecr:GetLifecyclePolicy",
       "ecr:List*",
       "eks:Describe*",
       "eks:List*",
@@ -159,6 +160,30 @@ data "aws_iam_policy_document" "terraform_plan" {
       "sqs:List*",
     ]
     resources = ["*"]
+  }
+
+  # O Terraform e dono do valor destes segredos: ele gera as senhas e cria os
+  # aws_secretsmanager_secret_version. Para atualizar o state desses recursos o
+  # provider chama GetSecretValue, entao nao existe plan funcional sem esta
+  # permissao -- e consequencia de quem gera o segredo, nao de como a politica
+  # foi escrita.
+  #
+  # Fica num statement separado, restrito aos ARNs exatos, e nunca em "*": o
+  # statement acima vale para a conta inteira, e juntar as duas coisas daria
+  # leitura de qualquer segredo da conta, hoje e no futuro.
+  #
+  # A forma de nao precisar disso e o valor nunca entrar no state, com os
+  # write-only arguments do Terraform 1.11+ (secret_string_wo). E a postura
+  # correta, e fica registrada aqui como divida tecnica consciente.
+  dynamic "statement" {
+    for_each = length(var.plan_readable_secret_arns) > 0 ? [1] : []
+
+    content {
+      sid       = "ReadManagedSecretValuesForPlan"
+      effect    = "Allow"
+      actions   = ["secretsmanager:GetSecretValue"]
+      resources = var.plan_readable_secret_arns
+    }
   }
 }
 

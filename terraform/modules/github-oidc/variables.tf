@@ -72,3 +72,9 @@ variable "project_prefix" {
   type        = string
   default     = "togglemaster"
 }
+
+variable "plan_readable_secret_arns" {
+  description = "ARNs dos segredos que o terraform plan precisa ler para atualizar o state."
+  type        = list(string)
+  default     = []
+}

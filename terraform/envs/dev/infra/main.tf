@@ -288,6 +288,15 @@ module "github_oidc" {
     for referencia in local.github_repo_refs : "repo:${referencia}:environment:aws-dev"
   ]
 
+  plan_readable_secret_arns = [
+    module.rds_auth.secret_arn,
+    module.rds_flag.secret_arn,
+    module.rds_targeting.secret_arn,
+    aws_secretsmanager_secret.auth_app.arn,
+    aws_secretsmanager_secret.evaluation_app.arn,
+    aws_secretsmanager_secret.analytics_app.arn,
+  ]
+
   ecr_repository_arns          = module.ecr.repository_arns
   enable_terraform_plan_access = var.state_bucket_name != ""
   state_bucket_name            = var.state_bucket_name
