@@ -77,6 +77,25 @@ variable "cluster_admin_principal_arns" {
   default     = []
 }
 
+variable "cluster_admin_iam_users" {
+  description = "Usuarios IAM desta conta que recebem acesso admin ao cluster."
+  type        = list(string)
+
+  # Quem cria o cluster ja vira admin por
+  # bootstrap_cluster_creator_admin_permissions -- na pratica, quem rodou o
+  # apply primeiro. Isso torna o acesso um efeito colateral de quem digitou o
+  # comando, e nao um fato declarado. Os demais entram aqui, por nome.
+  #
+  # O valor fica versionado, e nao no terraform.tfvars, de proposito: o arquivo
+  # e gitignored, entao o CI leria o default e o plan proporia REMOVER as access
+  # entries criadas localmente. Nome de usuario IAM nao e segredo -- e
+  # identificador, nao credencial.
+  #
+  # marcelo-fiap nao entra na lista: ele criou o cluster e ja tem access entry,
+  # e declarar de novo faria o Terraform tentar criar uma entrada duplicada.
+  default = ["vinicius-fiap"]
+}
+
 # --- Bancos ------------------------------------------------------------------
 variable "postgres_version" {
   description = "Versão do PostgreSQL nas instâncias RDS"

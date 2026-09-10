@@ -133,8 +133,14 @@ module "eks" {
   node_desired_size   = var.node_desired_size
   node_max_size       = var.node_max_size
 
-  cluster_admin_principal_arns = var.cluster_admin_principal_arns
-  public_access_cidrs          = var.public_access_cidrs
+  cluster_admin_principal_arns = concat(
+    var.cluster_admin_principal_arns,
+    [
+      for usuario in var.cluster_admin_iam_users :
+      "arn:aws:iam::${data.aws_caller_identity.current.account_id}:user/${usuario}"
+    ]
+  )
+  public_access_cidrs = var.public_access_cidrs
 
   tags = local.common_tags
 
