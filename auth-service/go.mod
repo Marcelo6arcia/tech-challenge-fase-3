@@ -16,8 +16,8 @@ require (
 // Nenhuma delas nos afeta na prática — este serviço só usa o pacote via pgx,
 // e nunca sobe um servidor SSH — mas a política é não deixar CRITICAL passar.
 require (
-	golang.org/x/crypto v0.55.0
-	golang.org/x/text v0.21.0
+	golang.org/x/crypto v0.55.0 // indirect
+	golang.org/x/text v0.41.0 // indirect
 )
 
 require (
