@@ -46,10 +46,17 @@ variable "db_subnet_group_name" {
   default     = null
 }
 
-variable "allowed_security_group_ids" {
-  description = "Security groups autorizados a conectar na porta 5432"
-  type        = list(string)
-  default     = []
+variable "allowed_security_groups" {
+  description = <<-EOT
+    Security groups autorizados a conectar, como mapa {rótulo => id}.
+
+    Mapa e não lista de propósito: o id do security group do EKS só existe
+    depois do apply, e `for_each` sobre um conjunto com valores desconhecidos
+    falha no plan ("Invalid for_each argument"). Com mapa, a CHAVE é estática e
+    só o valor é resolvido em tempo de apply.
+  EOT
+  type        = map(string)
+  default     = {}
 }
 
 variable "engine_version" {

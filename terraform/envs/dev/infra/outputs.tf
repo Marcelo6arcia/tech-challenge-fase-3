@@ -58,7 +58,7 @@ output "eks_oidc_provider_arn" {
 }
 
 output "kubeconfig_command" {
-  value       = "aws eks update-kubeconfig --region ${var.aws_region} --name ${module.eks.cluster_name}"
+  value       = "aws eks update-kubeconfig --region ${var.aws_region} --name ${module.eks.cluster_name} --alias togglemaster-dev"
   description = "Comando para configurar o kubectl"
 }
 

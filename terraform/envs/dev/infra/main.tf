@@ -155,10 +155,10 @@ module "rds_auth" {
   db_name    = "authdb"
   username   = "authuser"
 
-  vpc_id                     = module.network.vpc_id
-  vpc_cidr                   = module.network.vpc_cidr
-  db_subnet_group_name       = aws_db_subnet_group.shared.name
-  allowed_security_group_ids = [module.eks.cluster_security_group_id]
+  vpc_id                  = module.network.vpc_id
+  vpc_cidr                = module.network.vpc_cidr
+  db_subnet_group_name    = aws_db_subnet_group.shared.name
+  allowed_security_groups = { eks_cluster = module.eks.cluster_security_group_id }
 
   engine_version     = var.postgres_version
   instance_class     = var.rds_instance_class
@@ -175,10 +175,10 @@ module "rds_flag" {
   db_name    = "flagdb"
   username   = "flaguser"
 
-  vpc_id                     = module.network.vpc_id
-  vpc_cidr                   = module.network.vpc_cidr
-  db_subnet_group_name       = aws_db_subnet_group.shared.name
-  allowed_security_group_ids = [module.eks.cluster_security_group_id]
+  vpc_id                  = module.network.vpc_id
+  vpc_cidr                = module.network.vpc_cidr
+  db_subnet_group_name    = aws_db_subnet_group.shared.name
+  allowed_security_groups = { eks_cluster = module.eks.cluster_security_group_id }
 
   engine_version     = var.postgres_version
   instance_class     = var.rds_instance_class
@@ -195,10 +195,10 @@ module "rds_targeting" {
   db_name    = "targetingdb"
   username   = "targetinguser"
 
-  vpc_id                     = module.network.vpc_id
-  vpc_cidr                   = module.network.vpc_cidr
-  db_subnet_group_name       = aws_db_subnet_group.shared.name
-  allowed_security_group_ids = [module.eks.cluster_security_group_id]
+  vpc_id                  = module.network.vpc_id
+  vpc_cidr                = module.network.vpc_cidr
+  db_subnet_group_name    = aws_db_subnet_group.shared.name
+  allowed_security_groups = { eks_cluster = module.eks.cluster_security_group_id }
 
   engine_version     = var.postgres_version
   instance_class     = var.rds_instance_class
@@ -213,11 +213,11 @@ module "rds_targeting" {
 module "redis" {
   source = "../../../modules/elasticache"
 
-  name                       = local.name_prefix
-  vpc_id                     = module.network.vpc_id
-  vpc_cidr                   = module.network.vpc_cidr
-  subnet_ids                 = module.network.private_subnet_ids
-  allowed_security_group_ids = [module.eks.cluster_security_group_id]
+  name                    = local.name_prefix
+  vpc_id                  = module.network.vpc_id
+  vpc_cidr                = module.network.vpc_cidr
+  subnet_ids              = module.network.private_subnet_ids
+  allowed_security_groups = { eks_cluster = module.eks.cluster_security_group_id }
 
   tags = local.common_tags
 }

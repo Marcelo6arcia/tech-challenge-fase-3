@@ -12,14 +12,14 @@ resource "aws_security_group" "this" {
 }
 
 resource "aws_vpc_security_group_ingress_rule" "from_sg" {
-  for_each = toset(var.allowed_security_group_ids)
+  for_each = var.allowed_security_groups
 
   security_group_id            = aws_security_group.this.id
   referenced_security_group_id = each.value
   from_port                    = var.port
   to_port                      = var.port
   ip_protocol                  = "tcp"
-  description                  = "Redis a partir do security group ${each.value}"
+  description                  = "Redis a partir de ${each.key}"
 }
 
 resource "aws_vpc_security_group_egress_rule" "vpc_only" {
