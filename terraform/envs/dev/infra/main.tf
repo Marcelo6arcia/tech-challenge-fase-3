@@ -265,9 +265,16 @@ module "github_oidc" {
     "repo:${var.github_owner}/${var.github_app_repo}:environment:*",
   ]
 
+  # Somente o subject de environment: a role privilegiada só é assumível depois
+  # da aprovação configurada no GitHub Environment `aws-dev`.
+  apply_role_subjects = [
+    "repo:${var.github_owner}/${var.github_app_repo}:environment:aws-dev",
+  ]
+
   ecr_repository_arns          = module.ecr.repository_arns
   enable_terraform_plan_access = var.state_bucket_name != ""
   state_bucket_name            = var.state_bucket_name
+  project_prefix               = local.name_prefix
 
   tags = local.common_tags
 }

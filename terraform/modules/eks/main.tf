@@ -105,7 +105,15 @@ resource "aws_eks_cluster" "this" {
 
   tags = merge(var.tags, { Name = var.cluster_name })
 
-  depends_on = [aws_iam_role_policy_attachment.cluster_policy]
+  # O log group tem que existir ANTES do cluster. Se o EKS chegar primeiro, ele
+  # cria /aws/eks/<cluster>/cluster sozinho — com retenção "Never expire" — e o
+  # apply quebra com ResourceAlreadyExistsException. Criando na ordem certa, a
+  # retenção é a nossa (var.cluster_log_retention_days) e o log não acumula
+  # indefinidamente. É corrida, então na primeira vez pode passar despercebido.
+  depends_on = [
+    aws_iam_role_policy_attachment.cluster_policy,
+    aws_cloudwatch_log_group.cluster,
+  ]
 }
 
 resource "aws_cloudwatch_log_group" "cluster" {

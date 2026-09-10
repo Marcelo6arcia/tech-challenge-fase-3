@@ -117,6 +117,11 @@ output "github_actions_role_arn" {
   description = "Configure este ARN no secret AWS_ROLE_ARN do repositório GitHub"
 }
 
+output "github_actions_apply_role_arn" {
+  value       = module.github_oidc.apply_role_arn
+  description = "Configure este ARN no secret AWS_ROLE_ARN_APPLY do repositório GitHub"
+}
+
 # --- IRSA --------------------------------------------------------------------
 output "irsa_role_arns" {
   value = {

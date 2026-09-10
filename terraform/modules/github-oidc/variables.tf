@@ -49,3 +49,26 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "enable_apply_role" {
+  description = "Cria uma segunda role, privilegiada, para o job de terraform apply"
+  type        = bool
+  default     = true
+}
+
+variable "apply_role_subjects" {
+  description = <<-EOT
+    Subjects OIDC autorizados a assumir a role de apply. Use sempre o formato de
+    environment — `repo:<owner>/<repo>:environment:<nome>` — e nunca um ref de
+    branch: é a aprovação exigida pelo GitHub Environment que serve de porta,
+    e ela é configuração do repositório, que um pull request não altera.
+  EOT
+  type        = list(string)
+  default     = []
+}
+
+variable "project_prefix" {
+  description = "Prefixo dos nomes de role e policy que a role de apply pode gerenciar"
+  type        = string
+  default     = "togglemaster"
+}
