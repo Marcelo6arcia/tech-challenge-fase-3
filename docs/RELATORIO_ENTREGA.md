@@ -119,7 +119,7 @@ a ignorar é pior do que alerta nenhum.
 **O `deploy.sh` da Fase 2.** Eram cerca de 120 linhas que aplicavam migrações,
 geravam a chave de serviço via `curl` e faziam `kubectl patch` em Secrets — o
 oposto de "se não está no código, não existe". Foi substituído por um Job
-declarativo registrado como hook PreSync do Argo CD, com a chave gerada pelo
+declarativo registrado como hook de sync do Argo CD, com a chave gerada pelo
 Terraform e apenas o hash SHA-256 semeado no banco.
 
 **Concorrência entre os cinco pipelines.** Os cinco escrevem no mesmo repositório

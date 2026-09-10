@@ -93,7 +93,7 @@ cada um, em uma frase, durante o vídeo:
 | **SBOM em CycloneDX** | Gerado a cada build e retido por 30 dias — rastreabilidade de supply chain. |
 | **SARIF na aba Security** | Achados de SAST, SCA e container ficam na interface nativa do GitHub. |
 | **ECR com tag imutável** | O commit no repositório GitOps descreve exatamente o bit que roda. |
-| **Job de bootstrap como hook PreSync** | Substitui as ~120 linhas de `deploy.sh` da Fase 2 por algo declarativo e idempotente. |
+| **Job de bootstrap como hook de sync (wave 0)** | Substitui as ~120 linhas de `deploy.sh` da Fase 2 por algo declarativo e idempotente. |
 | **Endurecimento dos pods** | `runAsNonRoot`, `readOnlyRootFilesystem`, `drop: [ALL]`, seccomp `RuntimeDefault`. |
 | **PDB e topology spread** | Disponibilidade preservada durante upgrades e distribuição entre AZs. |
 | **21 testes unitários** | Cobrem hash da API key, bucketing determinístico, *fail closed* e a garantia de que mensagem malformada não sai da fila. |
