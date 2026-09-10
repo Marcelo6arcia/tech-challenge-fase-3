@@ -122,9 +122,42 @@ data "aws_iam_policy_document" "terraform_plan" {
   }
 
   statement {
-    sid       = "ReadOnlyForPlan"
-    effect    = "Allow"
-    actions   = ["ec2:Describe*", "eks:Describe*", "eks:List*", "rds:Describe*", "elasticache:Describe*", "dynamodb:Describe*", "sqs:Get*", "sqs:List*", "ecr:Describe*", "iam:Get*", "iam:List*", "logs:Describe*", "secretsmanager:Describe*", "secretsmanager:List*"]
+    sid    = "ReadOnlyForPlan"
+    effect = "Allow"
+    # O provider da AWS le as tags de cada recurso ao atualizar o state, e a
+    # politica so tinha Describe* para varios servicos. O plan morria em
+    # AccessDenied sobre rds:ListTagsForResource, ecr:ListTagsForResource,
+    # dynamodb:ListTagsOfResource, logs:ListTagsForResource,
+    # elasticache:ListTagsForResource e secretsmanager:GetResourcePolicy.
+    #
+    # Os verbos de leitura ficam completos por servico, mas sem nada que leia
+    # DADOS: nao existe secretsmanager:Get* aqui, porque isso arrastaria
+    # GetSecretValue e daria ao CI de plan as senhas dos bancos. O acesso ao
+    # segredo continua sendo so do External Secrets, via IRSA. Pelo mesmo
+    # motivo nao existe dynamodb:Get*, que arrastaria GetItem -- as tags vem
+    # de dynamodb:List*, que cobre ListTagsOfResource.
+    actions = [
+      "dynamodb:Describe*",
+      "dynamodb:List*",
+      "ec2:Describe*",
+      "ecr:Describe*",
+      "ecr:List*",
+      "eks:Describe*",
+      "eks:List*",
+      "elasticache:Describe*",
+      "elasticache:List*",
+      "iam:Get*",
+      "iam:List*",
+      "logs:Describe*",
+      "logs:List*",
+      "rds:Describe*",
+      "rds:List*",
+      "secretsmanager:Describe*",
+      "secretsmanager:GetResourcePolicy",
+      "secretsmanager:List*",
+      "sqs:Get*",
+      "sqs:List*",
+    ]
     resources = ["*"]
   }
 }
