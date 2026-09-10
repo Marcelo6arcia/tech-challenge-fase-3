@@ -286,10 +286,19 @@ jobs:
             go mod tidy
           fi
           go install github.com/securego/gosec/v2/cmd/gosec@v2.29.0
-          # Relatório SARIF completo, sem quebrar o build
+
+          # Duas saídas do mesmo escaneamento: SARIF para a aba Security e JSON
+          # para a porta de qualidade. Nenhuma das duas quebra o build aqui — a
+          # decisão fica no passo seguinte, que sabe explicar o motivo.
           gosec -no-fail -fmt sarif -out "${GITHUB_WORKSPACE}/sast.sarif" ./...
-          # Porta de qualidade: achados de alta severidade derrubam o pipeline
-          gosec -severity high -confidence medium -fmt text ./...
+          gosec -no-fail -fmt json  -out "${GITHUB_WORKSPACE}/gosec-report.json" ./...
+
+          # Saída legível no log, para quem estiver acompanhando o run
+          gosec -no-fail -fmt text ./...
+
+      - name: Porta de qualidade — SAST (severidade alta)
+        if: inputs.language == 'go'
+        run: python3 .github/scripts/sast_gate.py gosec-report.json "SAST ${{ inputs.service }}"
 
       - name: Configurar Python
         if: inputs.language == 'python'
