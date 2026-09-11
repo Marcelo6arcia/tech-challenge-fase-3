@@ -3,4 +3,4 @@ key          = "togglemaster/dev/infra.tfstate"
 region       = "us-east-1"
 encrypt      = true
 use_lockfile = true
-profile      = "fiap"
+profile      = "vinicius-fiap"
