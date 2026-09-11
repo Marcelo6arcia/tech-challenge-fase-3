@@ -136,10 +136,26 @@ Confirme no ECR que não há tag nova.
 **A correção (1,5 min)**
 
 ```bash
-./scripts/demo-vulnerabilidade.sh remover flag-service
-git commit -am "fix: remove dependencia vulneravel"
+./scripts/demo-vulnerabilidade.sh corrigir flag-service
+git commit -am "fix: sobe PyYAML para 6.0.2, corrigindo a CVE-2020-14343"
 git push
 ```
+
+> **Use `corrigir`, e nunca `remover`, aqui.** `remover` desfaz exatamente o que
+> `inserir` fez, então o saldo líquido do Pull Request é **zero**: o merge na
+> `main` não altera arquivo nenhum, os workflows filtram por `paths`, nenhum
+> filtro casa e **o pipeline da main não roda**. O Bloco 3 fica sem o commit de
+> deploy para mostrar — foi o que aconteceu no primeiro ensaio.
+>
+> `corrigir` sobe a dependência para a versão com patch. O saldo passa a ser
+> real, o merge dispara o pipeline inteiro, a imagem vai para o ECR e o commit
+> aparece no repositório GitOps.
+>
+> E a fala fica melhor: a resposta a uma CVE é **subir a dependência**, não
+> remover a dependência nem afrouxar o portão. É a regra 4 do `CLAUDE.md` na
+> prática.
+>
+> O `remover` continua existindo para a limpeza depois da gravação.
 
 Mesmo Pull Request, agora verde. Merge na `main`.
 

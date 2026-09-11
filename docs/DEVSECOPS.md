@@ -174,13 +174,24 @@ acontece.
 A correção:
 
 ```bash
-./scripts/demo-vulnerabilidade.sh remover flag-service
-git commit -am "fix: remove dependencia vulneravel"
+./scripts/demo-vulnerabilidade.sh corrigir flag-service
+git commit -am "fix: sobe PyYAML para 6.0.2, corrigindo a CVE-2020-14343"
 git push
 ```
 
 O mesmo Pull Request fica verde e, ao ser mesclado na `main`, a imagem é
 publicada e o repositório GitOps recebe o commit.
+
+A ação é `corrigir`, e não `remover`, por dois motivos. O primeiro é de
+mecânica: `remover` desfaz exatamente o que `inserir` fez, e o saldo líquido do
+Pull Request vira **zero**. O merge não altera arquivo nenhum, os workflows
+filtram por `paths`, nenhum filtro casa e o pipeline da `main` não roda — a
+frase acima, sobre a imagem ser publicada, deixaria de ser verdade. O segundo é
+de conteúdo: a resposta a uma CVE em dependência é **subir a dependência para a
+versão com patch**, não remover a dependência. Remover resolveria a demonstração
+e ensinaria a lição errada.
+
+`remover` continua disponível para limpar o repositório depois da gravação.
 
 ### Opção B — falha de SAST no código Go
 
