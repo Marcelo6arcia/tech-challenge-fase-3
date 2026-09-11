@@ -11,7 +11,6 @@ psycopg2-binary==2.9.10
 python-dotenv==1.0.1
 requests==2.32.3
 
-# === DEMO DE VULNERABILIDADE - REMOVER ANTES DO MERGE ===
-# CVE-2020-14343 (CVSS 9.8, CRITICAL): execucao arbitraria de codigo via
-# yaml.full_load. Corrigida a partir da 5.4.
-PyYAML==5.3.1
+# Bump exigido pelo SCA: a 5.3.1 carregava a CVE-2020-14343 (CVSS 9.8),
+# execucao arbitraria de codigo via yaml.full_load.
+PyYAML==6.0.2
