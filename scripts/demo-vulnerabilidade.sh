@@ -72,6 +72,36 @@ inserir_python() {
     return
   fi
 
+  # Tira qualquer PyYAML que ja esteja no arquivo antes de acrescentar o
+  # vulneravel. Sem isso, um `inserir` depois de um `corrigir` deixa dois pins
+  # do mesmo pacote e o pip reprova ANTES do portao de SCA:
+  #
+  #   ERROR: Cannot install PyYAML==5.3.1 and PyYAML==6.0.2 because these
+  #   package versions have conflicting dependencies.
+  #
+  # O job que falha vira "Build & Unit Test" em vez de "SCA", e a demonstracao
+  # passa a mostrar erro de dependencia quebrada -- nao uma CVE sendo barrada.
+  # E o ciclo inserir -> corrigir -> inserir e o que acontece em qualquer
+  # segunda tomada da gravacao.
+  python3 - "$req" <<'PY'
+import sys, pathlib, re
+p = pathlib.Path(sys.argv[1])
+linhas = p.read_text().splitlines()
+saida, i = [], 0
+while i < len(linhas):
+    if re.match(r"^\s*PyYAML\s*==", linhas[i], re.IGNORECASE):
+        # remove tambem o bloco de comentario colado acima da linha
+        while saida and saida[-1].lstrip().startswith("#"):
+            saida.pop()
+        while saida and saida[-1].strip() == "":
+            saida.pop()
+        i += 1
+        continue
+    saida.append(linhas[i])
+    i += 1
+p.write_text("\n".join(saida).rstrip("\n") + "\n")
+PY
+
   cat >> "$req" <<EOF
 
 $MARCADOR
@@ -124,20 +154,28 @@ PY
 remover_python() {
   local req="$RAIZ/$SERVICO/requirements.txt"
 
-  python3 - "$req" "$MARCADOR" <<'PY'
-import sys, pathlib
-caminho, marcador = sys.argv[1], sys.argv[2]
-p = pathlib.Path(caminho)
+  # Remove qualquer PyYAML e o bloco de comentario colado nele, venha de
+  # `inserir` (5.3.1, com marcador) ou de `corrigir` (6.0.2, sem marcador). A
+  # versao anterior procurava so o marcador, entao depois de um `corrigir` ela
+  # respondia "Nada a remover" e deixava a dependencia para tras -- o pacote
+  # nem e usado pelo flag-service, so existe para a demonstracao.
+  python3 - "$req" <<'PY'
+import sys, pathlib, re
+p = pathlib.Path(sys.argv[1])
 linhas = p.read_text().splitlines()
-if marcador not in linhas:
-    print("Nada a remover.")
-    sys.exit(0)
-corte = linhas.index(marcador)
-# remove também a linha em branco imediatamente anterior ao marcador
-while corte > 0 and linhas[corte - 1].strip() == "":
-    corte -= 1
-p.write_text("\n".join(linhas[:corte]) + "\n")
-print("Dependência vulnerável removida.")
+saida, removeu, i = [], False, 0
+while i < len(linhas):
+    if re.match(r"^\s*PyYAML\s*==", linhas[i], re.IGNORECASE):
+        while saida and saida[-1].lstrip().startswith("#"):
+            saida.pop()
+        while saida and saida[-1].strip() == "":
+            saida.pop()
+        removeu, i = True, i + 1
+        continue
+    saida.append(linhas[i])
+    i += 1
+p.write_text("\n".join(saida).rstrip("\n") + "\n")
+print("Dependência de demonstração removida." if removeu else "Nada a remover.")
 PY
 }
 
