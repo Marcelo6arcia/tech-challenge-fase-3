@@ -9,12 +9,28 @@ tfplan
 crash.log
 crash.*.log
 
-# Valores específicos do ambiente — nunca versionar
+# Valores específicos do ambiente
 *.tfvars
 *.tfvars.json
 backend.hcl
 !*.tfvars.example
 !backend.hcl.example
+
+# Excecoes deliberadas, e nao descuido: os arquivos do ambiente dev sao
+# versionados para a dupla trabalhar e gravar a demonstracao sem reconstruir
+# configuracao a mao. Nenhum tem credencial — sao nome de bucket, regiao, nome
+# do profile, tamanho de node e a lista de CIDRs autorizados no endpoint do EKS.
+#
+# As senhas continuam fora: sao geradas pelo Terraform, guardadas no Secrets
+# Manager e entregues ao cluster pelo External Secrets. O que se versiona e o
+# ExternalSecret, nunca o Secret.
+#
+# Qualquer .tfvars ou backend.hcl NOVO segue ignorado — as excecoes sao por
+# caminho exato.
+!terraform/envs/dev/infra/backend.hcl
+!terraform/envs/dev/infra/terraform.tfvars
+!terraform/envs/dev/platform/backend.hcl
+!terraform/envs/dev/platform/terraform.tfvars
 
 override.tf
 override.tf.json
