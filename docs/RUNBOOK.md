@@ -79,13 +79,30 @@ dois `backend.hcl` automaticamente.
 
 ```bash
 cd terraform/envs/dev/infra
-cp terraform.tfvars.example terraform.tfvars
-# ajuste: github_owner, github_app_repo, state_bucket_name, aws_profile
+
+# O terraform.tfvars e o backend.hcl deste ambiente ja vem versionados.
+# Para um ambiente novo, parta do exemplo e ajuste github_owner,
+# github_app_repo, state_bucket_name e public_access_cidrs:
+#   cp terraform.tfvars.example terraform.tfvars
+
+export AWS_PROFILE=fiap
 
 terraform init -backend-config=backend.hcl
 terraform plan      # é este plan que vai para o vídeo
 terraform apply
 ```
+
+> **O `export AWS_PROFILE` nao e opcional.** O `aws_profile` foi retirado do
+> `terraform.tfvars` de proposito: o arquivo e versionado, um `.tfvars` e
+> carregado automaticamente e vence qualquer `TF_VAR_` do ambiente. Com o
+> profile declarado ali, o runner do GitHub — que autentica por OIDC e nao tem
+> profile nenhum — quebrava com `failed to get shared config profile, fiap`,
+> e o CI nao tinha como sobrescrever.
+>
+> Com `aws_profile` nulo, o provider usa a cadeia padrao de credenciais, que
+> respeita `AWS_PROFILE` na sua maquina e as variaveis do OIDC no CI. O
+> `backend.hcl` mantem `profile` porque o CI nao o usa: la o backend e
+> configurado por `-backend-config` na linha de comando.
 
 Cria: VPC com 2 AZs, EKS 1.31 + node group, 3 RDS PostgreSQL, ElastiCache Redis,
 DynamoDB, SQS com DLQ, 5 repositórios ECR, provider OIDC do GitHub, 3 roles IRSA

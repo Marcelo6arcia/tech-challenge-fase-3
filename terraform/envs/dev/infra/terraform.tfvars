@@ -1,5 +1,19 @@
-aws_region  = "us-east-1"
-aws_profile = "fiap"
+aws_region = "us-east-1"
+
+# aws_profile NAO entra aqui. Este arquivo e versionado, e um .tfvars e
+# carregado automaticamente e vence qualquer TF_VAR_ do ambiente -- entao
+# declarar o profile aqui obriga o runner do GitHub a ter um profile "fiap",
+# que ele nao tem: o CI autentica por OIDC. O plan quebrava com
+# "failed to get shared config profile, fiap" e o CI nao tinha como sobrescrever.
+#
+# Na sua maquina, exporte antes de rodar:
+#
+#   export AWS_PROFILE=fiap
+#
+# Com aws_profile nulo o provider usa a cadeia padrao de credenciais, que
+# respeita AWS_PROFILE. O backend.hcl continua com profile = "fiap" porque o
+# CI nao o usa: la o backend e configurado por -backend-config na linha de
+# comando.
 
 project_name = "togglemaster"
 environment  = "dev"
