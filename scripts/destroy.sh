@@ -33,7 +33,45 @@ echo
 read -r -p "Digite DESTRUIR para confirmar: " CONFIRMA
 [[ "$CONFIRMA" == "DESTRUIR" ]] || { echo "Cancelado."; exit 0; }
 
-# ── 1. Plataforma ────────────────────────────────────────────────────────────
+# ── 1. NLB do ingress, ANTES de qualquer outra coisa ─────────────────────────
+# O NLB criado pelo Service do ingress-nginx e orfao do ponto de vista do
+# Terraform: quem o criou foi o cloud-controller do Kubernetes, e quem sabe
+# apaga-lo e o mesmo controlador.
+#
+# Esta etapa vinha DEPOIS do destroy da plataforma, e por isso nao funcionava:
+# o destroy remove o release do ingress-nginx, o controlador deixa de existir, e
+# o `kubectl delete svc` seguinte nao tem mais quem execute a remocao na AWS. O
+# NLB ficava ativo segurando duas ENIs, o Terraform nao conseguia apagar as
+# subnets e o destroy da VPC ficava preso por tempo indeterminado -- aconteceu,
+# e custou 40 minutos.
+echo
+echo ">>> Removendo o Service do ingress (libera o NLB) — antes da plataforma..."
+kubectl -n ingress-nginx delete svc ingress-nginx-controller --ignore-not-found --timeout=180s || true
+echo ">>> Aguardando a AWS liberar o load balancer..."
+sleep 60
+
+# Rede de seguranca: se o controlador ja tiver sido removido numa execucao
+# anterior, ou o Service nao existir, o NLB fica orfao e nada o remove. Aqui a
+# exclusao e feita direto na AWS, restrita a VPC deste projeto.
+VPC_PROJETO=$(aws ec2 describe-vpcs \
+  --filters "Name=tag:Project,Values=ToggleMaster" \
+  --query 'Vpcs[0].VpcId' --output text 2>/dev/null || echo "None")
+
+if [ "$VPC_PROJETO" != "None" ] && [ -n "$VPC_PROJETO" ]; then
+  for lb in $(aws elbv2 describe-load-balancers \
+      --query "LoadBalancers[?VpcId=='${VPC_PROJETO}'].LoadBalancerArn" \
+      --output text 2>/dev/null || true); do
+    echo ">>> Load balancer orfao encontrado, removendo: $(basename "$lb")"
+    aws elbv2 delete-load-balancer --load-balancer-arn "$lb" 2>/dev/null || true
+  done
+  for tg in $(aws elbv2 describe-target-groups \
+      --query "TargetGroups[?VpcId=='${VPC_PROJETO}'].TargetGroupArn" \
+      --output text 2>/dev/null || true); do
+    aws elbv2 delete-target-group --target-group-arn "$tg" 2>/dev/null || true
+  done
+fi
+
+# ── 2. Plataforma ────────────────────────────────────────────────────────────
 echo
 echo ">>> Removendo a plataforma (Argo CD, ingress, External Secrets)..."
 terraform -chdir="${TF}/envs/dev/platform" destroy -input=false -auto-approve || \
@@ -45,13 +83,6 @@ echo ">>> Limpando finalizers de Applications remanescentes..."
 for app in $(kubectl -n argocd get applications -o name 2>/dev/null || true); do
   kubectl -n argocd patch "$app" -p '{"metadata":{"finalizers":null}}' --type=merge || true
 done
-
-# O NLB criado pelo Service do ingress-nginx é um recurso "órfão" do ponto de
-# vista do Terraform: quem o criou foi o cloud-controller do Kubernetes.
-echo ">>> Removendo o Service do ingress (libera o NLB)..."
-kubectl -n ingress-nginx delete svc ingress-nginx-controller --ignore-not-found --timeout=180s || true
-echo ">>> Aguardando a AWS liberar o load balancer..."
-sleep 60
 
 # ── 2. Infraestrutura ────────────────────────────────────────────────────────
 echo
